@@ -1,0 +1,376 @@
+syntax = "proto3";
+
+package schedule;
+
+import "google/protobuf/empty.proto";
+
+message Id {
+  string id = 1;
+}
+
+message BoolResponse {
+  bool success = 1;
+}
+
+// ===================================================================
+//  Сервіси
+// ===================================================================
+
+// Сервіс для адміністративних завдань
+service AdminService {
+  // --- Group CRUD ---
+  rpc findAllGroups(google.protobuf.Empty) returns (FindAllGroupsResponse);
+  rpc createGroup(CreateGroupInput) returns (BoolResponse);
+  rpc updateGroup(UpdateGroupRequest) returns (BoolResponse);
+  rpc deleteGroup(Id) returns (BoolResponse);
+
+  // --- Teacher CRUD ---
+  rpc findAllTeachers(google.protobuf.Empty) returns (FindAllTeachersResponse);
+  rpc createTeacher(CreateTeacherInput) returns (BoolResponse);
+  rpc updateTeacher(UpdateTeacherRequest) returns (BoolResponse);
+  rpc deleteTeacher(Id) returns (BoolResponse);
+
+  // --- Curriculum CRUD ---
+  rpc findAllCurriculums(google.protobuf.Empty) returns (FindAllCurriculumsResponse);
+  rpc createCurriculum(CurriculumInput) returns (BoolResponse);
+  rpc updateCurriculum(UpdateCurriculumRequest) returns (BoolResponse);
+  rpc deleteCurriculum(Id) returns (BoolResponse);
+
+  // --- Schedule Management ---
+  rpc addPair(AddPairDto) returns (BoolResponse);
+  rpc editPair(EditPairDto) returns (BoolResponse);
+  rpc deletePair(Id) returns (BoolResponse);
+  rpc getPairsByCriteria(GetPairsByCriteriaDto) returns (GetPairsByCriteriaResponse);
+  rpc getPairInfo(Id) returns (GetPairInfoResponse);
+  rpc swapGroupPairs(SwapGroupPairsDto) returns (BoolResponse);
+  rpc swapTeacherPairs(SwapTeacherPairsDto) returns (BoolResponse);
+  rpc updateGroups(UpdateGroupsDto) returns (BoolResponse);
+}
+
+// Публічний сервіс
+service SheduleService {
+  rpc searchGroup(SearchGroupInput) returns (SearchGroupResponse);
+  rpc searchTeacher(SearchTeacherInput) returns (SearchTeacherResponse);
+  rpc getGroupSchedule(GetGroupScheduleInput) returns (ScheduleResponse);
+  rpc getTeacherSchedule(GetTeacherScheduleInput) returns (ScheduleResponse);
+}
+
+// ===================================================================
+//  Сутності (Entities)
+// ===================================================================
+
+// --- Типи, що використовуються в сутностях ---
+message RelatedTeacher {
+  string id = 1;
+  string name = 2;
+  int32 planned_lectures = 3;
+  int32 planned_practicals = 4;
+  int32 planned_labs = 5;
+  int32 scheduled_lectures = 6;
+  int32 scheduled_practicals = 7;
+  int32 scheduled_labs = 8;
+}
+
+message RelatedGroup {
+  string id = 1;
+  string code = 2;
+  int32 planned_lectures = 3;
+  int32 planned_practicals = 4;
+  int32 planned_labs = 5;
+  int32 scheduled_lectures = 6;
+  int32 scheduled_practicals = 7;
+  int32 scheduled_labs = 8;
+}
+
+// --- Самі сутності ---
+
+message Group {
+  string id = 1;
+  string group_code = 2;
+  string faculty = 3;
+}
+
+message Teacher {
+  string id = 1;
+  string full_name = 2;
+  string department = 3;
+  string post = 4;
+}
+
+message Curriculum {
+  string id = 1;
+  string subject_name = 2;
+  repeated RelatedTeacher related_teachers = 3;
+  repeated RelatedGroup related_groups = 4;
+  bool correspondence = 5;
+}
+
+message Schedule {
+  string id = 1;
+  repeated string teachers_list = 2;
+  repeated string groups_list = 3;
+  string subject_id = 4;
+  int32 semester_number = 5;
+  int32 week_number = 6;
+  int32 day_number = 7;
+  int32 pair_number = 8;
+  string visit_format = 9;
+  string lesson_type = 10;
+  optional string audience = 11;
+}
+
+// ===================================================================
+//  Admin DTOs (з /dto/admin/*.dto.ts)
+// ===================================================================
+
+// --- Group DTOs ---
+message CreateGroupInput {
+  string group_code = 1;
+  string faculty = 2;
+}
+
+message UpdateGroupInput {
+  optional string group_code = 1;
+  optional string faculty = 2;
+}
+
+message UpdateGroupRequest {
+  string id = 1;
+  UpdateGroupInput input = 2;
+}
+
+message FindAllGroupsResponse {
+  repeated Group groups = 1;
+}
+
+
+// --- Teacher DTOs ---
+message CreateTeacherInput {
+  string full_name = 1;
+  string department = 2;
+  string post = 3;
+}
+
+message UpdateTeacherInput {
+  optional string full_name = 1;
+  optional string department = 2;
+  optional string post = 3;
+}
+
+message UpdateTeacherRequest {
+  string id = 1;
+  UpdateTeacherInput input = 2;
+}
+
+message FindAllTeachersResponse {
+  repeated Teacher teachers = 1;
+}
+
+// --- Curriculum DTOs ---
+message PlannedHoursInput {
+  int32 planned_lectures = 1;
+  int32 planned_practicals = 2;
+  int32 planned_labs = 3;
+}
+
+message RelatedTeacherInput {
+  string id = 1;
+  int32 planned_lectures = 2;
+  int32 planned_practicals = 3;
+  int32 planned_labs = 4;
+}
+
+message RelatedGroupInput {
+  string id = 1;
+  int32 planned_lectures = 2;
+  int32 planned_practicals = 3;
+  int32 planned_labs = 4;
+}
+
+message CurriculumInput {
+  string subject_name = 1;
+  repeated RelatedTeacherInput related_teachers = 2;
+  repeated RelatedGroupInput related_groups = 3;
+}
+
+message UpdateCurriculumRequest {
+  string id = 1;
+  CurriculumInput input = 2;
+}
+
+message FindAllCurriculumsResponse {
+  repeated Curriculum curriculums = 1;
+}
+
+// --- Schedule DTOs ---
+message AddPairDto {
+  int32 semester_number = 1;
+  repeated string groups_list = 2;
+  repeated string teachers_list = 3;
+  string subject_id = 4;
+  int32 week_number = 5;
+  int32 day_number = 6;
+  int32 pair_number = 7;
+  string lesson_type = 8;
+  string visit_format = 9;
+  optional string audience = 10;
+}
+
+message EditPairDto {
+  string id = 1;
+  int32 semester_number = 2;
+  repeated string groups_list = 3;
+  repeated string teachers_list = 4;
+  string subject_id = 5;
+  int32 week_number = 6;
+  int32 day_number = 7;
+  int32 pair_number = 8;
+  string lesson_type = 9;
+  string visit_format = 10;
+  optional string audience = 11;
+}
+
+message SwapGroupLocationDto {
+  string group_id = 1;
+  int32 week_number = 2;
+  int32 day_number = 3;
+  int32 pair_number = 4;
+}
+
+message SwapGroupPairsDto {
+  int32 semester = 1;
+  SwapGroupLocationDto source = 2;
+  SwapGroupLocationDto destination = 3;
+}
+
+message SwapTeacherLocationDto {
+  string teacherId = 1;
+  int32 week_number = 2;
+  int32 day_number = 3;
+  int32 pair_number = 4;
+}
+
+message SwapTeacherPairsDto {
+  int32 semester = 1;
+  SwapTeacherLocationDto source = 2;
+  SwapTeacherLocationDto destination = 3;
+}
+
+message GetPairsByCriteriaDto {
+  int32 semester = 1;
+  optional string group_id = 6;
+  optional string teacherId = 7;
+}
+
+message UpdateGroupsDto {
+  int32 toNextYear = 1;
+}
+
+message PairMinimalInfo {
+  string id = 1;
+  string subject_name = 2;
+  int32 semester_number = 3;
+  int32 week_number = 4;
+  int32 day_number = 5;
+  int32 pair_number = 6;
+}
+
+message ScheduleGroup {
+  string id = 1;
+  string group_code = 2;
+}
+
+message ScheduleTeacher {
+  string id = 1;
+  string name = 2;
+}
+
+message GetPairsByCriteriaResponse {
+  repeated PairMinimalInfo pairs = 1;
+}
+
+message GetPairInfoResponse {
+  string id = 1;
+  repeated ScheduleGroup groups_list = 2;
+  repeated ScheduleTeacher teachers_list = 3;
+  string lesson_type = 4;
+  string visit_format = 5;
+  optional string audience = 6;
+}
+
+// ===================================================================
+//  Public DTOs (з /dto/public/*.dto.ts)
+// ===================================================================
+
+// --- Public Entities/Types ---
+// Використовується в ScheduleItem
+message PublicGroup {
+  string id = 1;
+  string group_code = 2;
+  string faculty = 3;
+}
+
+// Використовується в ScheduleItem
+message PublicTeacher {
+  string id = 1;
+  string name = 2;
+  string post = 3;
+}
+
+// --- Search Group DTOs ---
+message SearchGroupInput {
+  string group_code = 1;
+}
+
+message GroupSearchItem {
+  string id = 1;
+  string group_code = 2;
+  string faculty = 3;
+}
+
+message SearchGroupResponse {
+  repeated GroupSearchItem groups = 1;
+}
+
+// --- Search Teacher DTOs ---
+message SearchTeacherInput {
+  string full_name = 1;
+}
+
+message TeacherInfo {
+  string id = 1;
+  string full_name = 2;
+  string department = 3;
+}
+
+message SearchTeacherResponse {
+  repeated TeacherInfo teachers = 1;
+}
+
+// --- Public Schedule DTOs ---
+message GetGroupScheduleInput {
+  string group_id = 1;
+  int32 semester_number = 2;
+}
+
+message GetTeacherScheduleInput {
+  string teacherId = 1;
+  int32 semester_number = 2;
+}
+
+message ScheduleItem {
+  int32 week_number = 1;
+  int32 day_number = 2;
+  int32 pair_number = 3;
+  string subjectName = 4;
+  string lesson_type = 5;
+  string visit_format = 6;
+  optional string building = 7;
+  optional string audienceNumber = 8;
+  repeated PublicGroup groupsList = 9;
+  repeated PublicTeacher teachersList = 10;
+}
+
+message ScheduleResponse {
+  repeated ScheduleItem schedule = 1;
+}

@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package auth;
+
+import "google/protobuf/empty.proto";
+
+service AuthService {
+  rpc Login (LoginRequest) returns (LoginResponse);
+  rpc Register (RegisterRequest) returns (LoginResponse);
+  rpc ChangeLogin (ChangeLoginRequest) returns (BoolResponse);
+  rpc ChangePassword (ChangePasswordRequest) returns (BoolResponse);
+  rpc Verify (VerifyRequest) returns (VerifyResponse);
+  rpc DeleteAccount(Id) returns (BoolResponse);
+  rpc AddAllowedUser (AddAllowedUserRequest) returns (BoolResponse);
+  rpc ChangeUserRole (ChangeUserRoleRequest) returns (BoolResponse);
+  rpc GetAllowedUsers (google.protobuf.Empty) returns (UsersResponse);
+  rpc GetUsers (google.protobuf.Empty) returns (UsersResponse);
+}
+
+message Id{
+  string user_id = 1;
+}
+
+message User {
+  string id = 1;
+  string login = 2;
+  string role = 3;
+}
+
+message UsersResponse {
+  repeated User users = 1;
+}
+
+message AddAllowedUserRequest {
+  string login = 1;
+  string role = 2;
+}
+
+message ChangeUserRoleRequest {
+  string user_id = 1;
+  string new_role = 2;
+}
+
+message LoginRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+  string user_id = 2;
+  string login = 3;
+  string role = 4;
+  string created_at = 5;
+}
+
+message RegisterRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message ChangeLoginRequest {
+  string user_id = 1;
+  string new_login = 2;
+}
+
+
+message ChangePasswordRequest {
+  string user_id = 1;
+  string current_password = 2;
+  string new_password = 3;
+}
+
+message BoolResponse {
+  bool success = 1;
+}
+
+message VerifyRequest {
+  string token = 1;
+}
+
+message VerifyResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string role = 3;
+}
