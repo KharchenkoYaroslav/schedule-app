@@ -25,7 +25,7 @@ export class GroupService {
       where: {
         groupCode: Like(`%${input.groupCode}%`),
       },
-      select: ['id', 'groupCode', 'faculty'],
+      select: ['id', 'groupCode'],
       take: 10,
     });
 
@@ -33,7 +33,6 @@ export class GroupService {
       groups: groups.map((g) => ({
         id: g.id,
         groupCode: g.groupCode,
-        faculty: g.faculty,
       })),
     };
   }

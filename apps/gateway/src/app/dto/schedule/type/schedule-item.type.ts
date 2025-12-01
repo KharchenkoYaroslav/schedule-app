@@ -35,11 +35,7 @@ export class ScheduleItem {
 
   @IsOptional()
   @IsString()
-  building?: string;
-
-  @IsOptional()
-  @IsString()
-  audienceNumber?: string;
+  audience?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

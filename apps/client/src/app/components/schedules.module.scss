@@ -1,0 +1,160 @@
+$primary-color: DodgerBlue;
+$hover-color: DeepSkyBlue;
+$text-color-white: white;
+$table-border-color: DarkSlateGray;
+$table-bg-color: AliceBlue;
+$table-header-bg: DarkSlateGray;
+$subject-bg: rgb(47, 79, 79);
+$subject-border: rgb(107, 139, 139);
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  height:100vh;
+
+  h2 {
+    color: $text-color-white;
+    font-size: 42px;
+    margin: 30px;
+  }
+}
+
+.message {
+  margin: 0;
+  color: $text-color-white;
+  font-size: 32px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.restartButton {
+  background-color: $primary-color;
+  color: $text-color-white;
+  border-radius: 50px;
+  padding: 6px 15px 8px 15px;
+  font-size: 20px;
+  border: none;
+  transition: 0.2s all;
+  box-shadow: inset 0 0 2px white;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+
+  &:hover {
+    background-color: $hover-color;
+    box-shadow: none;
+  }
+
+  &:active {
+    transform: scale(0.8);
+    box-shadow: 0 0 5px white;
+  }
+
+  .icon {
+    margin-left: 6px;
+    display: inline-block;
+    vertical-align: baseline;
+    position: relative;
+    top: 0.1em;
+  }
+}
+
+.tablesContainer {
+  max-width: 95vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.tableContainer {
+  padding-bottom: 40px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  h3 {
+    margin-top: 20px;
+    color: $text-color-white;
+    font-size: 28px;
+  }
+
+  table {
+    margin-bottom: 30px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    max-width: 1200px;
+
+    th, td {
+      border: 1px solid $table-border-color;
+      padding: 5px;
+      text-align: center;
+      word-wrap: break-word;
+      background-color: $table-bg-color;
+      vertical-align: middle;
+    }
+
+    th {
+      background-color: $table-header-bg;
+      color: $text-color-white;
+      padding: 10px;
+    }
+
+    th:first-child,
+    td:first-child {
+      font-weight: bold;
+      width: 50px;
+    }
+
+    a {
+      color: black;
+      text-decoration: none;
+      &:hover {
+        color: $primary-color;
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.subject {
+  font-size: 15px;
+  background-color: $subject-bg;
+  color: $text-color-white;
+  padding: 5px;
+  border-radius: 10px;
+  border: 3px solid $subject-border;
+  margin-bottom: 5px;
+}
+
+.relatedInfo {
+  font-size: 13.5px;
+  font-weight: bold;
+  margin: 5px 0;
+  display: block;
+}
+
+.typeFormat {
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.place {
+  font-size: 13px;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+

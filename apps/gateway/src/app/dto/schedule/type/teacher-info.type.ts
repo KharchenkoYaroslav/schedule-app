@@ -7,6 +7,4 @@ export class TeacherInfo {
   @IsString()
   fullName: string;
 
-  @IsString()
-  department: string;
 }

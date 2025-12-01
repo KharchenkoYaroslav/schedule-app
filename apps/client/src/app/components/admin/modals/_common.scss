@@ -1,0 +1,56 @@
+@use '../modal.variables' as *; 
+
+.contentWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+
+  margin-bottom: 24px;
+
+  h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: $color-text-primary;
+  }
+}
+
+.header > :last-child {
+  flex-shrink: 0;
+}
+
+.header > :first-child {
+  flex-grow: 1;
+  overflow: auto;
+}
+
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.closeIcon {
+  cursor: pointer;
+  font-size: 22px;
+  color: $color-text-secondary;
+  transition: all 0.2s;
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: $color-text-primary;
+    background-color: $color-hover;
+  }
+}

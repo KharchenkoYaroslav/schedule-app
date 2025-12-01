@@ -263,7 +263,7 @@ message GetPairsByCriteriaDto {
 }
 
 message UpdateGroupsDto {
-  int32 toNextYear = 1;
+  int32 action = 1;
 }
 
 message PairMinimalInfo {
@@ -291,11 +291,12 @@ message GetPairsByCriteriaResponse {
 
 message GetPairInfoResponse {
   string id = 1;
-  repeated ScheduleGroup groups_list = 2;
-  repeated ScheduleTeacher teachers_list = 3;
-  string lesson_type = 4;
-  string visit_format = 5;
-  optional string audience = 6;
+  string subject_id = 2;
+  repeated ScheduleGroup groups_list = 3;
+  repeated ScheduleTeacher teachers_list = 4;
+  string lesson_type = 5;
+  string visit_format = 6;
+  optional string audience = 7;
 }
 
 // ===================================================================
@@ -325,7 +326,6 @@ message SearchGroupInput {
 message GroupSearchItem {
   string id = 1;
   string group_code = 2;
-  string faculty = 3;
 }
 
 message SearchGroupResponse {
@@ -340,7 +340,6 @@ message SearchTeacherInput {
 message TeacherInfo {
   string id = 1;
   string full_name = 2;
-  string department = 3;
 }
 
 message SearchTeacherResponse {
@@ -365,12 +364,12 @@ message ScheduleItem {
   string subjectName = 4;
   string lesson_type = 5;
   string visit_format = 6;
-  optional string building = 7;
-  optional string audienceNumber = 8;
-  repeated PublicGroup groupsList = 9;
-  repeated PublicTeacher teachersList = 10;
+  optional string audience = 7;
+  repeated PublicGroup groupsList = 8;
+  repeated PublicTeacher teachersList = 9;
 }
 
 message ScheduleResponse {
   repeated ScheduleItem schedule = 1;
+  string identifier = 2;
 }

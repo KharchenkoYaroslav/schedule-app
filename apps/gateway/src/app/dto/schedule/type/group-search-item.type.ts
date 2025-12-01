@@ -7,6 +7,4 @@ export class GroupSearchItem {
   @IsString()
   groupCode: string;
 
-  @IsString()
-  faculty: string;
 }

@@ -31,7 +31,7 @@ export class TeacherService {
       where: {
         fullName: Like(`%${input.fullName}%`),
       },
-      select: ['id', 'fullName', 'department'],
+      select: ['id', 'fullName'],
       take: 10,
     });
 
@@ -39,7 +39,6 @@ export class TeacherService {
       teachers: teachers.map((t) => ({
         id: t.id,
         fullName: t.fullName,
-        department: t.department,
       })),
     };
   }

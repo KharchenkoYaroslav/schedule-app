@@ -1,6 +1,7 @@
 import {
   IsString,
   IsArray,
+  ArrayNotEmpty,
   IsOptional,
   IsEnum,
 } from 'class-validator';
@@ -16,10 +17,12 @@ export class AddPairDto {
   semesterNumber: SemesterNumber;
 
   @IsArray()
+  @ArrayNotEmpty()
   @IsString({ each: true })
   groupsList: string[];
 
   @IsArray()
+  @ArrayNotEmpty()
   @IsString({ each: true })
   teachersList: string[];
 

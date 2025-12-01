@@ -1,0 +1,169 @@
+$bg-sidebar: #f5f5f5;
+$btn-bg: #1e90ff;
+$btn-hover: #00bfff;
+$change-info-btn-bg: #9075AA;
+$change-info-btn-hover: #af93d6;
+$delete-btn-bg: #dc3545;
+$delete-btn-hover: rgb(253, 29, 52);
+$white: white;
+$text-color: black;
+
+
+*{
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+      color: red;
+    }
+}
+
+.sidebar {
+  width: 250px;
+  background-color: $bg-sidebar;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  box-sizing: border-box;
+
+  &.collapsed {
+    width: 70px;
+    padding: 20px 10px;
+
+    .collapse-button {
+      justify-content: center;
+      .admin-name {
+        display: none;
+      }
+    }
+    .menu-container {
+      display: none;
+    }
+  }
+
+  .collapse-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    align-self: flex-end;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    color: $text-color;
+    padding: 0 5px;
+    font-family: inherit;
+    justify-content: space-around;
+    margin-bottom: 10px;
+
+    .admin-name {
+      flex-grow: 1;
+      text-align: center;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .menu-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;        
+  }
+
+  .account-menu,
+  .management-menu,
+  .control-menu {
+    width: 100%;
+    margin: 0;
+
+    h3 {
+      cursor: pointer;
+      font-size: 18px;
+      margin: 5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      width: 100%;
+      user-select: none;
+    }
+
+    button {
+      background-color: $btn-bg;
+      color: $white;
+      display: block;
+      width: 100%;
+      margin: 8px 0 8px 0;
+      padding: 12px 10px;
+      font-size: 18px;
+      font-weight: 500;
+
+      border-radius: 30px;
+      border: none;
+
+      box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25), inset 0 0 2px $white;
+
+      transition: 0.2s all;
+      font-family: inherit;
+      cursor: pointer;
+
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &:active {
+        transform: scale(0.95);
+        box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.25), inset 0 0 5px $white;
+      }
+
+      @media (hover: hover) {
+        &:hover {
+          background-color: $btn-hover;
+        }
+      }
+
+    }
+
+    .delete-account-button {
+      background-color: $delete-btn-bg;
+
+      @media (hover: hover) {
+          &:hover {
+            background-color: $delete-btn-hover;
+          }
+        }
+    }
+
+    .change-info-button {
+      background-color: $change-info-btn-bg;
+
+      @media (hover: hover) {
+          &:hover {
+            background-color: $change-info-btn-hover;
+          }
+        }
+    }
+  }
+  .menu-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    max-height: 500px;
+    opacity: 1;
+    visibility: visible;
+
+    &.collapsed {
+      max-height: 0;
+      opacity: 0;
+      visibility: hidden;
+      padding-bottom: 0;
+    }
+  }
+}

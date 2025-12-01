@@ -5,6 +5,7 @@ import { Repository, In, DataSource } from 'typeorm';
 import { Schedule } from '../entities/Schedule.entity';
 import { Teacher } from '../entities/Teacher.entity';
 import { Group } from '../entities/Group.entity';
+import { Curriculum } from '../entities/Curriculum.entity';
 import { CurriculumService } from './curriculum.service';
 import { SemesterNumber } from '../types/SemesterNumber.enum';
 import { WeekNumber } from '../types/WeekNumber.enum';
@@ -44,6 +45,15 @@ export class ScheduleService {
   async getGroupSchedule(
     input: GetGroupScheduleInput
   ): Promise<ScheduleResponse> {
+    const group = await this.groupRepository.findOneBy({ id: input.groupId });
+
+    if (!group) {
+      throw new RpcException({
+        message: `Group with ID ${input.groupId} not found`,
+        code: 5,
+      });
+    }
+
     const schedules = await this.scheduleRepository
       .createQueryBuilder('s')
       .leftJoinAndSelect('s.subject', 'c')
@@ -56,7 +66,7 @@ export class ScheduleService {
       .getMany();
 
     if (schedules.length === 0) {
-      return { schedule: [] };
+      return { schedule: [], identifier: group.groupCode };
     }
 
     const teacherIds = schedules.flatMap((s) => s.teachersList || []);
@@ -75,8 +85,6 @@ export class ScheduleService {
         .map((tId) => teacherMap.get(tId))
         .filter((t) => t !== undefined);
 
-      const [building, audienceNumber] = s.audience ? s.audience.split('-') : [undefined, undefined];
-
       return {
         weekNumber: Number(s.weekNumber),
         dayNumber: Number(s.dayNumber),
@@ -85,17 +93,27 @@ export class ScheduleService {
         lessonType: s.lessonType,
         visitFormat: s.visitFormat,
         teachersList: teachersList,
-        ...(building && { building }),
-        ...(audienceNumber && { audienceNumber }),
+        audience: s.audience
       };
     });
 
-    return { schedule: scheduleItems };
+    return { schedule: scheduleItems, identifier: group.groupCode };
   }
 
   async getTeacherSchedule(
     input: GetTeacherScheduleInput
   ): Promise<ScheduleResponse> {
+    const teacher = await this.teacherRepository.findOneBy({
+      id: input.teacherId,
+    });
+
+    if (!teacher) {
+      throw new RpcException({
+        message: `Teacher with ID ${input.teacherId} not found`,
+        code: 5,
+      });
+    }
+
     const schedules = await this.scheduleRepository
       .createQueryBuilder('s')
       .leftJoinAndSelect('s.subject', 'c')
@@ -108,7 +126,7 @@ export class ScheduleService {
       .getMany();
 
     if (schedules.length === 0) {
-      return { schedule: [] };
+      return { schedule: [], identifier: teacher.fullName };
     }
 
     const groupIds = schedules.flatMap((s) => s.groupsList || []);
@@ -127,8 +145,6 @@ export class ScheduleService {
         .map((gId) => groupMap.get(gId))
         .filter((g) => g !== undefined);
 
-      const [building, audienceNumber] = s.audience ? s.audience.split('-') : [undefined, undefined];
-
       return {
         weekNumber: Number(s.weekNumber),
         dayNumber: Number(s.dayNumber),
@@ -137,12 +153,11 @@ export class ScheduleService {
         lessonType: s.lessonType,
         visitFormat: s.visitFormat,
         groupsList: groupsList,
-        ...(building && { building }),
-        ...(audienceNumber && { audienceNumber }),
+        audience: s.audience
       };
     });
 
-    return { schedule: scheduleItems };
+    return { schedule: scheduleItems, identifier: teacher.fullName };
   }
 
   async addPair(input: AddPairDto): Promise<void> {
@@ -172,10 +187,18 @@ export class ScheduleService {
   }
 
   async editPair(input: EditPairDto): Promise<void> {
-    const { id, ...updateData } = input;
+    const { id, subjectId, ...updateData } = input;
+
+    const existingPair = await this.scheduleRepository.findOneBy({ id });
+    if (!existingPair) {
+      throw new RpcException({
+        message: `Schedule pair with ID ${id} not found`,
+        code: 5,
+      });
+    }
 
     await this.validateCurriculumRelations(
-      updateData.subjectId,
+      subjectId,
       updateData.teachersList,
       updateData.groupsList
     );
@@ -191,13 +214,23 @@ export class ScheduleService {
 
     await this.scheduleRepository.update(id, {
       ...updateData,
+      subjectId,
       audience: updateData.audience || null,
     });
 
+    // Якщо предмет змінився, перераховуємо кореспонденцію для старого предмета
+    if (subjectId && subjectId !== existingPair.subjectId) {
+      await this.curriculumService.recalculateCurriculumCorrespondence(
+        existingPair.subjectId
+      );
+    }
+
+    // Перераховуємо кореспонденцію для поточного/нового предмета
     await this.curriculumService.recalculateCurriculumCorrespondence(
-      updateData.subjectId
+      subjectId
     );
   }
+
 
   async deletePair(input: DeletePairDto): Promise<void> {
     const pairToDelete = await this.scheduleRepository.findOneBy({
@@ -263,6 +296,7 @@ export class ScheduleService {
       .createQueryBuilder('s')
       .select([
         's.id',
+        's.subjectId',
         's.groupsList',
         's.teachersList',
         's.lessonType',
@@ -304,6 +338,7 @@ export class ScheduleService {
 
     return {
       id: pair.id,
+      subjectId: pair.subjectId,
       groupsList,
       teachersList,
       lessonType: pair.lessonType,
@@ -320,7 +355,6 @@ export class ScheduleService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Знайти запис джерела
       const sourcePair = await queryRunner.manager
         .createQueryBuilder(Schedule, 's')
         .where('s.semester_number = :semester', { semester })
@@ -336,7 +370,6 @@ export class ScheduleService {
         })
         .getOne();
 
-      // 2. Знайти запис призначення
       const destinationPair = await queryRunner.manager
         .createQueryBuilder(Schedule, 's')
         .where('s.semester_number = :semester', { semester })
@@ -355,12 +388,32 @@ export class ScheduleService {
         .getOne();
 
       if (!sourcePair && !destinationPair) {
-        // Пустий на пустий. Нічого не робимо.
         await queryRunner.commitTransaction();
         return;
       }
 
-      // 3. Переносимо Source -> Destination
+      if (sourcePair) {
+        await this.checkTeacherConflict(
+          semester,
+          destination.weekNumber,
+          destination.dayNumber,
+          destination.pairNumber,
+          sourcePair.teachersList,
+          destinationPair?.id
+        );
+      }
+
+      if (destinationPair) {
+        await this.checkTeacherConflict(
+          semester,
+          source.weekNumber,
+          source.dayNumber,
+          source.pairNumber,
+          destinationPair.teachersList,
+          sourcePair?.id
+        );
+      }
+
       if (sourcePair) {
         await queryRunner.manager.delete(Schedule, { id: sourcePair.id });
         const newPair1 = queryRunner.manager.create(Schedule, {
@@ -389,6 +442,10 @@ export class ScheduleService {
       await queryRunner.commitTransaction();
     } catch (err) {
       await queryRunner.rollbackTransaction();
+      // Прокидаємо RpcException далі, якщо це вже RpcException
+      if (err instanceof RpcException) {
+        throw err;
+      }
       throw new RpcException({
         message: err.message || 'Internal server error during group pair swap.',
         code: 13,
@@ -441,12 +498,31 @@ export class ScheduleService {
         .getOne();
 
       if (!sourcePair && !destinationPair) {
-        // Пустий на пустий. Нічого не робимо.
         await queryRunner.commitTransaction();
         return;
       }
 
-      // 3. Переносимо Source -> Destination
+      if (sourcePair) {
+        await this.checkTeacherConflict(
+          semester,
+          destination.weekNumber,
+          destination.dayNumber,
+          destination.pairNumber,
+          sourcePair.teachersList,
+          destinationPair?.id
+        );
+      }
+
+      if (destinationPair) {
+        await this.checkTeacherConflict(
+          semester,
+          source.weekNumber,
+          source.dayNumber,
+          source.pairNumber,
+          destinationPair.teachersList,
+          sourcePair?.id
+        );
+      }
       if (sourcePair) {
         await queryRunner.manager.delete(Schedule, { id: sourcePair.id });
         const newPair1 = queryRunner.manager.create(Schedule, {
@@ -459,7 +535,6 @@ export class ScheduleService {
         await queryRunner.manager.save(newPair1);
       }
 
-      // 4. Переносимо Destination -> Source
       if (destinationPair) {
         await queryRunner.manager.delete(Schedule, { id: destinationPair.id });
         const newPair2 = queryRunner.manager.create(Schedule, {
@@ -475,6 +550,9 @@ export class ScheduleService {
       await queryRunner.commitTransaction();
     } catch (err) {
       await queryRunner.rollbackTransaction();
+      if (err instanceof RpcException) {
+        throw err;
+      }
       throw new RpcException({
         message:
           err.message || 'Internal server error during teacher pair swap.',
@@ -486,64 +564,103 @@ export class ScheduleService {
   }
 
   async updateGroups(input: UpdateGroupsDto): Promise<void> {
-    const { toNextYear } = input;
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const direction = toNextYear === 1 ? 1 : -1;
+      const direction = input.action === 1 ? 1 : -1;
 
-      const schedules = await queryRunner.manager.find(Schedule);
+      const referenceYear = new Date().getFullYear();
 
-      for (const schedule of schedules) {
-        const updatedGroups: string[] = [];
-        let shouldDelete = false;
+      const bachelorValidDigits = [0, 1, 2, 3].map((offset) =>
+        (referenceYear - offset).toString().slice(-1)
+      );
 
-        for (const group_code of schedule.groupsList) {
-          const parts = group_code.split('-');
-          if (parts.length !== 2) {
-            updatedGroups.push(group_code);
-            continue;
-          }
+      const masterValidDigits = [0, 1].map((offset) =>
+        (referenceYear - offset).toString().slice(-1)
+      );
 
-          // Регулярний вираз для розбору частини після дефісу: [S1][X][Z][S2][S3]
-          // Група 1: S1 (зп, п, з, в) - Форма навчання
-          // Група 2: X (Рік вступу/Курс) - 1 цифра
-          // Група 3: Z (Номер групи) - 1 або 2 цифри
-          // Група 4: S2S3 (Освітній рівень + Контингент)
-          const regex = /^(зп|[пзв])?(\d)(\d{1,2})((мп|мн|ф)?і?)$/u;
-          const match = parts[1].match(regex);
+      const allGroups = await this.groupRepository.find();
 
-          if (!match) {
-            updatedGroups.push(group_code);
-            continue;
-          }
+      const groupsToDeleteIds: string[] = [];
+      const groupsToUpdate: { id: string; newCode: string }[] = [];
 
-          const s1 = match[1] || ''; // S1
-          const course = parseInt(match[2], 10); // Перша цифра XX (Рік вступу/Курс)
-          const groupNumber = match[3]; // Решта цифр
-          const s2s3 = match[4] || ''; // S2S3
+      const regex = /^(?:зп|[пзв])?(\d)(?:\d{1,2})((?:мп|мн|ф)?і?)$/u;
 
-          const newCourse = course + direction;
-
-          if (newCourse < 1 || newCourse > 4) {
-            shouldDelete = true;
-            break;
-          }
-
-          const newGroupCode = `${parts[0]}-${s1}${newCourse}${groupNumber}${s2s3}`;
-          updatedGroups.push(newGroupCode);
+      for (const group of allGroups) {
+        const parts = group.groupCode.split('-');
+        if (parts.length !== 2) {
+          continue;
         }
 
-        if (shouldDelete) {
-          await queryRunner.manager.delete(Schedule, { id: schedule.id });
-        } else if (updatedGroups.length > 0) {
-          await queryRunner.manager.update(Schedule, schedule.id, {
-            groupsList: updatedGroups,
-          });
+        const suffix = parts[1];
+        const match = suffix.match(regex);
+
+        if (match) {
+          const currentCourse = parseInt(match[1], 10);
+          const modifiers = match[2] || '';
+
+          const newCourse = currentCourse + direction;
+          const newCourseDigit = newCourse.toString().slice(-1);
+
+          const isMaster = modifiers.includes('мп') || modifiers.includes('мн');
+          const validDigits = isMaster ? masterValidDigits : bachelorValidDigits;
+
+          if (!validDigits.includes(newCourseDigit)) {
+            groupsToDeleteIds.push(group.id);
+          } else {
+            const newSuffix = suffix.replace(currentCourse.toString(), newCourse.toString());
+            const newCode = `${parts[0]}-${newSuffix}`;
+
+            groupsToUpdate.push({
+              id: group.id,
+              newCode: newCode
+            });
+          }
         }
+      }
+
+      if (groupsToDeleteIds.length > 0) {
+        const curriculums = await queryRunner.manager.find(Curriculum);
+        for (const curriculum of curriculums) {
+          if (curriculum.relatedGroups) {
+            const initialLength = curriculum.relatedGroups.length;
+            curriculum.relatedGroups = curriculum.relatedGroups.filter(
+              (g) => !groupsToDeleteIds.includes(g.id)
+            );
+            if (curriculum.relatedGroups.length !== initialLength) {
+              curriculum.correspondence = this.curriculumService.checkCorrespondence(curriculum);
+              await queryRunner.manager.save(Curriculum, curriculum);
+            }
+          }
+        }
+
+        const schedules = await queryRunner.manager.find(Schedule);
+        for (const schedule of schedules) {
+          if (schedule.groupsList) {
+            const originalLength = schedule.groupsList.length;
+            const updatedGroupsList = schedule.groupsList.filter(
+              (groupId) => !groupsToDeleteIds.includes(groupId)
+            );
+
+            if (updatedGroupsList.length !== originalLength) {
+              if (updatedGroupsList.length === 0) {
+                await queryRunner.manager.delete(Schedule, { id: schedule.id });
+              } else {
+                schedule.groupsList = updatedGroupsList;
+                await queryRunner.manager.save(Schedule, schedule);
+              }
+            }
+          }
+        }
+
+        await queryRunner.manager.delete(Group, { id: In(groupsToDeleteIds) });
+      }
+
+      for (const update of groupsToUpdate) {
+        await queryRunner.manager.update(Group, update.id, { groupCode: update.newCode });
       }
 
       await queryRunner.commitTransaction();

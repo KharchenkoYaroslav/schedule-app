@@ -1,0 +1,72 @@
+@use "sass:color";
+@use '../modal.variables' as *;
+@use './common';
+
+@mixin input-style {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid $color-border;
+    box-sizing: border-box;
+}
+
+@mixin button-style($bg-color) {
+    padding: 10px;
+    background-color: $bg-color;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+.formArea {
+    padding-bottom: 20px;
+}
+
+.selectInput {
+    @include input-style;
+    margin-bottom: 10px;
+}
+
+.filterInput {
+    @include input-style;
+    margin-bottom: 15px;
+}
+
+.teacherLabel {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: $color-text-primary;
+}
+
+.teacherInput {
+    @include input-style;
+    margin-bottom: 15px;
+}
+
+.buttonContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.primaryButton {
+    @include button-style($color-legacy-primary);
+}
+
+.selectButton {
+    @include button-style($color-success);
+}
+
+.deleteButton {
+    @include button-style($color-legacy-delete);
+}

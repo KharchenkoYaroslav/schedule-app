@@ -15,6 +15,9 @@ export class GetPairInfoResponse {
   @IsString()
   id: string;
 
+  @IsString()
+  subjectId: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ScheduleGroup)

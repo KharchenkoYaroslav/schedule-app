@@ -8,7 +8,6 @@ export class SearchGroupInput {
 export class GroupSearchItem {
   id: string;
   groupCode: string;
-  faculty: string;
 }
 
 export class SearchGroupResponse {

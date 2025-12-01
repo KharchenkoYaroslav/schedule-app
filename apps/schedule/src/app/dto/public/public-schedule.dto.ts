@@ -35,12 +35,12 @@ export class ScheduleItem {
   subjectName: string;
   lessonType: string;
   visitFormat: string;
-  building?: string;
-  audienceNumber?: string;
+  audience?: string;
   groupsList?: Group[];
   teachersList?: Teacher[];
 }
 
 export class ScheduleResponse {
   schedule: ScheduleItem[];
+  identifier: string;
 }

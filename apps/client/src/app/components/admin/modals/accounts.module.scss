@@ -1,0 +1,324 @@
+@use "sass:color";
+@use '../modal.variables' as *;
+@use './common';
+
+.sliderContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+}
+
+.accountsScrollArea {
+  display: flex;
+  flex-direction: row;
+
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  scrollbar-width: none;
+}
+
+.registeredUsersSection, .allowedUsersSection {
+  min-width: 100%;
+  height: 100%;
+  scroll-snap-align: center;
+
+  display: flex;
+  flex-direction: column;
+  padding: 0 5px;
+  box-sizing: border-box;
+  overflow: hidden;
+
+  .sectionHeader {
+    text-align: center;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    font-size: 1.2em;
+    color: $color-text-primary;
+    flex-shrink: 0;
+  }
+
+  .sectionDescription {
+    text-align: center;
+    font-size: 0.85em;
+    color: $color-text-secondary;
+    margin-bottom: 10px;
+    padding: 0 10px;
+    flex-shrink: 0;
+  }
+}
+
+.userList, .allowedUserList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 5px 10px;
+
+  height: 1px;
+  flex-grow: 1;
+
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.loaderCenter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.userRow {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid $color-border;
+  border-radius: 6px;
+  background-color: $color-bg;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: $color-hover;
+  }
+
+  .userInfo {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-right: 15px;
+    flex: 1;
+
+    .userLogin {
+      font-weight: 600;
+      font-size: 1em;
+      color: $color-text-primary;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .userId {
+      font-size: 0.75em;
+      color: $color-text-secondary;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+  }
+
+  .userControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+
+    select {
+      padding: 5px 8px;
+      border: 1px solid $color-border;
+      border-radius: 4px;
+      background-color: $color-bg;
+      color: $color-text-primary;
+      cursor: pointer;
+      max-width: 120px;
+    }
+
+    .changeRoleButton {
+      background-color: $color-primary;
+      color: #ffffff;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85em;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: background-color 0.2s, opacity 0.2s;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 70px;
+      min-height: 32px;
+
+      &:hover {
+        background-color: color.adjust($color-primary, $lightness: -5%);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    .deleteIcon {
+      color: $color-danger;
+      cursor: pointer;
+      font-size: 1.3em;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s;
+
+      &:hover {
+        background-color: $color-danger-soft;
+        color: color.adjust($color-danger, $lightness: -10%);
+      }
+    }
+  }
+}
+
+.allowedUserRow {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid $color-border;
+  font-size: 0.95em;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .allowedUserRole {
+    font-size: 0.85em;
+    color: $color-text-secondary;
+    margin-left: auto;
+    margin-right: 15px;
+  }
+
+  .allowedUserLogin {
+    font-weight: 500;
+    color: $color-text-primary;
+  }
+
+  .deleteIcon {
+      color: $color-danger;
+      cursor: pointer;
+      font-size: 1.1em;
+      transition: color 0.2s;
+      padding: 5px;
+
+      &:hover {
+        color: color.adjust($color-danger, $lightness: -10%);
+      }
+  }
+}
+
+.addAllowedUserForm {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid $color-border;
+    flex-shrink: 0;
+
+    h3 {
+        font-size: 1.1em;
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: $color-text-primary;
+    }
+
+    .formFields {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+
+        input[type="text"] {
+            padding: 8px;
+            border: 1px solid $color-border;
+            border-radius: 4px;
+            background-color: $color-bg;
+            color: $color-text-primary;
+            flex-grow: 1;
+            min-width: 150px;
+        }
+
+        select {
+            padding: 8px;
+            border: 1px solid $color-border;
+            border-radius: 4px;
+            background-color: $color-bg;
+            color: $color-text-primary;
+            cursor: pointer;
+        }
+
+        button {
+             background-color: $color-success;
+             color: white;
+             padding: 8px 15px;
+             border: none;
+             border-radius: 4px;
+             cursor: pointer;
+             font-size: 1em;
+             line-height: 1;
+             white-space: nowrap;
+             transition: background-color 0.2s;
+             min-height: 34px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+
+             &:hover {
+                background-color: color.adjust($color-success, $lightness: -5%);
+             }
+
+             &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+             }
+        }
+    }
+}
+
+.emptyMessage {
+    text-align: center;
+    color: $color-text-secondary;
+    padding: 10px 0;
+    font-style: italic;
+}
+
+.indicators {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
+  background-color: $color-bg;
+  z-index: 10;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: $color-border;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: color.adjust($color-border, $lightness: -20%);
+  }
+
+  &.active {
+    background-color: $color-primary;
+    transform: scale(1.2);
+  }
+}

@@ -8,7 +8,6 @@ export class SearchTeacherInput {
 export class TeacherInfo {
   id: string;
   fullName: string;
-  department: string;
 }
 
 export class SearchTeacherResponse {

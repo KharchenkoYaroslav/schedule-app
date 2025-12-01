@@ -15,8 +15,8 @@ interface AuthServiceGrpc {
   login(data: LoginInput): Observable<LoginResponse>;
   verify(data: { token: string }): Observable<VerifyResponse>;
   register(data: RegisterInput): Observable<LoginResponse>;
-  changeLogin(data: ChangeLoginInput): Observable<{ success: boolean }>;
-  changePassword(data: ChangePasswordInput): Observable<{ success: boolean }>;
+  changeLogin(data: ChangeLoginInput & { userId: string }): Observable<{ success: boolean }>;
+  changePassword(data: ChangePasswordInput & { userId: string }): Observable<{ success: boolean }>;
   deleteAccount(data: { userId: string }): Observable<{ success: boolean }>;
   addAllowedUser(data: AddAllowedUserInput): Observable<{ success: boolean }>;
   changeUserRole(data: ChangeUserRoleInput): Observable<{ success: boolean }>;

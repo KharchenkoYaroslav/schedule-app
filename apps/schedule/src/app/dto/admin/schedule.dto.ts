@@ -173,6 +173,7 @@ export class GetPairsByCriteriaResponse {
 
 export class GetPairInfoResponse {
     id: string;
+    subjectId: string;
     groupsList: ScheduleGroup[];
     teachersList: ScheduleTeacher[];
     lessonType: LessonType;
@@ -184,5 +185,5 @@ export class GetPairInfoResponse {
 
 export class UpdateGroupsDto {
   @IsNumber()
-  toNextYear: 0 | 1; // 1 for next year, 0 for previous year
+  action: 0 | 1; 
 }
