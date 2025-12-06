@@ -38,6 +38,12 @@ export class AuthController {
     return { success: true};
   }
 
+  @GrpcMethod('AuthService', 'DeleteAllowedUser')
+  async deleteAllowedUser(data: { userId: string }) {
+    await this.authService.deleteAllowedUser(data.userId);
+    return { success: true };
+  }
+
   @GrpcMethod('AuthService', 'ChangeUserRole')
   async changeUserRole(data: {userId: string; newRole: string }) {
     await this.authService.changeUserRole(data.userId, data.newRole as UserRole);

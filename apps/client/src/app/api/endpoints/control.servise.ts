@@ -32,6 +32,10 @@ export class ControlService {
     await apiClient.patch(`auth/change-user-role`, input);
   }
 
+  async deleteAllowedUser(userId: string): Promise<void> {
+    await apiClient.delete(`auth/allowed-user/${userId}`);
+  }
+
   async deleteUser(userId: string): Promise<void> {
     await apiClient.delete(`auth/user/${userId}`);
   }

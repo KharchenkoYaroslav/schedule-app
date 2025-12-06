@@ -17,6 +17,11 @@ describe('Security & User Management Flow', () => {
     pass: 'UserPass2',
   };
 
+  const USER_3 = {
+    login: `User3-${TIMESTAMP}`,
+    pass: 'UserPass3',
+  };
+
   beforeEach(() => {
     cy.viewport(1920, 1080);
     cy.on('window:confirm', () => true);
@@ -31,6 +36,7 @@ describe('Security & User Management Flow', () => {
     cy.intercept('GET', '**/group*').as('getGroups');
 
     cy.intercept('POST', '**/add-allowed-user*').as('addAllowedUser');
+    cy.intercept('DELETE', '**/allowed-user/*').as('deleteAllowedUser');
     cy.intercept('DELETE', '**/user/*').as('deleteUser');
     cy.intercept('PATCH', '**/change-user-role*').as('changeRole');
     cy.intercept('PATCH', '**/change-login*').as('changeLogin');
@@ -130,6 +136,30 @@ describe('Security & User Management Flow', () => {
     cy.contains(`Користувач ${USER_2.login} успішно доданий`, {
       timeout: 10000,
     }).should('exist');
+
+    // ADD USER 3 
+    cy.get('input[placeholder="Логін користувача"]').clear();
+    cy.get('input[placeholder="Логін користувача"]').type(USER_3.login);
+    cy.contains('button', 'Додати').click();
+    cy.wait('@addAllowedUser');
+    cy.contains(`Користувач ${USER_3.login} успішно доданий`, {
+      timeout: 10000,
+    }).should('exist');
+
+    // DELETE USER 3
+    cy.get('div[class*="allowedUserRow"]:contains("' + USER_3.login + '")')
+      .find('svg[class*="deleteIcon"]')
+      .click();
+
+    cy.wait('@deleteAllowedUser');
+    cy.contains(`Дозволеного користувача ${USER_3.login} успішно видалено`, {
+      timeout: 10000,
+    }).should('exist');
+
+    // Verify USER 3 is gone from the list, but USER 1 and USER 2 remain
+    cy.get('div[class*="allowedUserList"]').should('not.contain', USER_3.login);
+    cy.get('div[class*="allowedUserList"]').should('contain', USER_1.login);
+    cy.get('div[class*="allowedUserList"]').should('contain', USER_2.login);
 
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 

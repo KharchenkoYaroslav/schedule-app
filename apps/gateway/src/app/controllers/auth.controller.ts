@@ -20,6 +20,7 @@ import { RegisterInput } from '../dto/auth/input/register.input';
 import { ChangeLoginInput } from '../dto/auth/input/change-login.input';
 import { ChangePasswordInput } from '../dto/auth/input/change-password.input';
 import { AddAllowedUserInput } from '../dto/auth/input/add-allowed-user.input';
+import { DeleteAllowedUserInput } from '../dto/auth/input/delete-allowed-user.input';
 import { ChangeUserRoleInput } from '../dto/auth/input/change-user-role.input';
 import { RestAuthGuard, Roles } from '../guards/auth.guard';
 import { UserRole } from '../dto/auth/types/user-role.enum';
@@ -105,6 +106,15 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async addAllowedUser(@Body() data: AddAllowedUserInput) {
     await this.authService.addAllowedUser(data);
+    return;
+  }
+
+  @Delete('allowed-user/:userId')
+  @UseGuards(RestAuthGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAllowedUser(@Param() data: DeleteAllowedUserInput) {
+    await this.authService.deleteAllowedUser(data);
     return;
   }
 

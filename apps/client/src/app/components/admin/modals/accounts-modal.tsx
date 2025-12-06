@@ -10,6 +10,7 @@ import {
   useChangeUserRoleMutation,
   useDeleteUserMutation,
   useAddAllowedUserMutation,
+  useDeleteAllowedUserMutation,
 } from '../../../hooks/useControlQueries';
 import { AddAllowedUserInput } from '../../../api/types/control/add-allowed-user.input';
 import { ChangeUserRoleInput } from '../../../api/types/control/change-user-role.input';
@@ -180,14 +181,34 @@ const AddAllowedUserForm: React.FC<{ refetchAllowedUsers: () => void }> = ({
 
 interface AllowedUserRowProps {
   user: UserDto;
+  refetchAllowedUsers: () => void;
 }
 
-const AllowedUserRow: React.FC<AllowedUserRowProps> = ({ user }) => {
+const AllowedUserRow: React.FC<AllowedUserRowProps> = ({ user, refetchAllowedUsers }) => {
+  const deleteAllowedUserMutation = useDeleteAllowedUserMutation();
+
+  const handleDelete = async () => {
+    if (!user.id) return;
+    if (!window.confirm(`Ви впевнені, що хочете видалити дозволеного користувача ${user.login}?`)) return;
+
+    try {
+      await deleteAllowedUserMutation.mutateAsync(user.id);
+      toast.success(`Дозволеного користувача ${user.login} успішно видалено.`);
+      refetchAllowedUsers();
+    } catch (error) {
+      toast.error(`Не вдалося видалити дозволеного користувача: ${error}`);
+    }
+  };
 
   return (
     <div className={styles.allowedUserRow}>
       <span className={styles.allowedUserLogin}>{user.login}</span>
       <span className={styles.allowedUserRole}>{user.role?.toUpperCase() || 'N/A'}</span>
+      <IoTrash
+        className={styles.deleteIcon}
+        onClick={handleDelete}
+        title="Видалити дозволеного користувача"
+      />
     </div>
   );
 };
@@ -280,7 +301,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ handleClose }) => {
           <div className={styles.allowedUsersSection}>
             <h3 className={styles.sectionHeader}>Реєстр дозволених ({allowedUsers?.length || 0})</h3>
             <p className={styles.sectionDescription}>
-              Список логінів (whitelist). Видалення заборонено.
+              Список логінів (whitelist).
             </p>
 
             <AddAllowedUserForm refetchAllowedUsers={handleRefetch} />
@@ -292,7 +313,11 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ handleClose }) => {
                  </div>
               ) : allowedUsers && allowedUsers.length > 0 ? (
                 allowedUsers.map((user) => (
-                  <AllowedUserRow key={user.login} user={user} />
+                  <AllowedUserRow
+                    key={user.id}
+                    user={user}
+                    refetchAllowedUsers={handleRefetch}
+                  />
                 ))
               ) : (
                 <p className={styles.emptyMessage}>Реєстр порожній.</p>

@@ -19,6 +19,7 @@ interface AuthServiceGrpc {
   changePassword(data: ChangePasswordInput & { userId: string }): Observable<{ success: boolean }>;
   deleteAccount(data: { userId: string }): Observable<{ success: boolean }>;
   addAllowedUser(data: AddAllowedUserInput): Observable<{ success: boolean }>;
+  deleteAllowedUser(data: { userId: string }): Observable<{ success: boolean }>;
   changeUserRole(data: ChangeUserRoleInput): Observable<{ success: boolean }>;
   getUsers(data: object): Observable<UsersResponseDto>;
   getAllowedUsers(data: object): Observable<UsersResponseDto>;
@@ -92,6 +93,14 @@ export class AuthService {
     await firstValueFrom(this.authService.addAllowedUser(data).pipe(
       catchError(error => {
         throw new HttpException(error, HttpStatus.CONFLICT);
+      })
+    ));
+  }
+
+  async deleteAllowedUser(data: { userId: string }) {
+    await firstValueFrom(this.authService.deleteAllowedUser(data).pipe(
+      catchError(error => {
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
       })
     ));
   }

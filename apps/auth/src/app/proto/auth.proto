@@ -12,6 +12,7 @@ service AuthService {
   rpc Verify (VerifyRequest) returns (VerifyResponse);
   rpc DeleteAccount(Id) returns (BoolResponse);
   rpc AddAllowedUser (AddAllowedUserRequest) returns (BoolResponse);
+  rpc DeleteAllowedUser (Id) returns (BoolResponse);
   rpc ChangeUserRole (ChangeUserRoleRequest) returns (BoolResponse);
   rpc GetAllowedUsers (google.protobuf.Empty) returns (UsersResponse);
   rpc GetUsers (google.protobuf.Empty) returns (UsersResponse);

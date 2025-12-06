@@ -149,6 +149,18 @@ export class AuthService {
     await this.allowedUsersRepository.save(allowedUser);
   }
 
+  async deleteAllowedUser(id: string): Promise<void> {
+    const allowedUser = await this.allowedUsersRepository.findOne({ where: { id } });
+    if (!allowedUser) {
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: 'Allowed user not found.',
+      });
+    }
+
+    await this.allowedUsersRepository.remove(allowedUser);
+  }
+
   async changeUserRole(userId: string, newRole: UserRole): Promise<void> {
     this.validateRole(newRole);
 

@@ -44,6 +44,13 @@ export const useChangeUserRoleMutation = () => {
   });
 };
 
+export const useDeleteAllowedUserMutation = () => {
+  return useMutation({
+    mutationKey: [CONTROL_QUERY_KEY, 'delete-allowed-user'],
+    mutationFn: (userId: string) => controlService.deleteAllowedUser(userId),
+  });
+};
+
 export const useDeleteUserMutation = () => {
   return useMutation({
     mutationKey: [CONTROL_QUERY_KEY, 'delete-user'],
