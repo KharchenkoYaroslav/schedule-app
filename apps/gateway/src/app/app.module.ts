@@ -13,7 +13,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     ThrottlerModule.forRoot([
       {
         ttl: 300000,
-        limit: 5,
+        limit: 10,
       },
     ]),
     ClientsModule.register([
