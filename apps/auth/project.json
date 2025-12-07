@@ -21,6 +21,23 @@
         }
       }
     },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/auth/jest.config.cts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        },
+        "coverage": {
+          "codeCoverage": true
+        }
+      }
+    },
     "serve": {
       "continuous": true,
       "executor": "@nx/js:node",

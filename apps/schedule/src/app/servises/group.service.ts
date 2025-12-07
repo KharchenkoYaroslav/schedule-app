@@ -8,7 +8,11 @@ import {
   SearchGroupInput,
   SearchGroupResponse,
 } from '../dto/public/search-group.dto';
-import {CreateGroupInput, UpdateGroupInput, FindAllGroupsResponse } from '../dto/admin/group.dto';
+import {
+  CreateGroupInput,
+  UpdateGroupInput,
+  FindAllGroupsResponse,
+} from '../dto/admin/group.dto'; 
 
 @Injectable()
 export class GroupService {
@@ -64,10 +68,7 @@ export class GroupService {
     await this.groupRepository.save(newGroup);
   }
 
-  async updateGroup(
-    id: string,
-    input: UpdateGroupInput
-  ): Promise<void> {
+  async updateGroup(id: string, input: UpdateGroupInput): Promise<void> {
     return this.dataSource.transaction(async (entityManager) => {
       const group = await entityManager.findOneBy(Group, { id });
 
@@ -78,7 +79,19 @@ export class GroupService {
         });
       }
 
-      if (input.groupCode !== undefined) {
+      if (
+        input.groupCode !== undefined &&
+        input.groupCode !== group.groupCode
+      ) {
+        const groupWithSameCode = await entityManager.findOneBy(Group, {
+          groupCode: input.groupCode,
+        });
+        if (groupWithSameCode) {
+          throw new RpcException({
+            message: `Group with code ${input.groupCode} already exists`,
+            code: 6,
+          });
+        }
         group.groupCode = input.groupCode;
       }
 
