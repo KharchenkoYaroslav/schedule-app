@@ -42,6 +42,9 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
   const [teacherToAdd, setTeacherToAdd] = useState<string>('');
   const [groupToAdd, setGroupToAdd] = useState<string>('');
 
+  const [teacherListFilter, setTeacherListFilter] = useState<string>('');
+  const [groupListFilter, setGroupListFilter] = useState<string>('');
+
   const isLoading =
     isCurriculumsLoading ||
     createMutation.isPending ||
@@ -49,6 +52,9 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
     deleteMutation.isPending;
 
   useEffect(() => {
+    setTeacherListFilter('');
+    setGroupListFilter('');
+
     if (selectedCurriculumId === 'new') {
       setSubjectName('');
       setRelatedTeachers([]);
@@ -86,6 +92,14 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
   const filteredCurriculums = curriculums.filter((c) =>
     c.subjectName?.toLowerCase().includes(filterName.toLowerCase())
   );
+
+  const filteredTeacherOptions = useMemo(() => {
+    return teachers.filter(t => (t.fullName ?? '').toLowerCase().includes(teacherListFilter.toLowerCase()));
+  }, [teachers, teacherListFilter]);
+
+  const filteredGroupOptions = useMemo(() => {
+    return groups.filter(g => (g.groupCode ?? '').toLowerCase().includes(groupListFilter.toLowerCase()));
+  }, [groups, groupListFilter]);
 
   const handleError = (error: unknown, action: string) => {
     let message = 'Невідома помилка';
@@ -149,6 +163,8 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
       setSubjectName('');
       setRelatedTeachers([]);
       setRelatedGroups([]);
+      setTeacherListFilter('');
+      setGroupListFilter('');
       refetch();
     } catch (error) {
       handleError(error, 'Помилка створення');
@@ -167,6 +183,8 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
         },
       });
       toast.success('Предмет оновлено');
+      setTeacherListFilter('');
+      setGroupListFilter('');
       refetch();
     } catch (error) {
       handleError(error, 'Помилка оновлення');
@@ -180,6 +198,8 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
       await deleteMutation.mutateAsync(selectedCurriculumId);
       toast.success('Предмет видалено');
       setSelectedCurriculumId('new');
+      setTeacherListFilter('');
+      setGroupListFilter('');
       refetch();
     } catch (error) {
       handleError(error, 'Помилка видалення');
@@ -237,6 +257,14 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
         <div>
             <label className={styles.inputLabel}>Пов'язані вчителі:</label>
             <div className={styles.relatedListContainer}>
+                <input
+                    type="text"
+                    placeholder="Пошук вчителя..."
+                    value={teacherListFilter}
+                    onChange={(e) => setTeacherListFilter(e.target.value)}
+                    className={styles.filterInput}
+                />
+
                 <div className={styles.addRelationRow}>
                     <select
                         value={teacherToAdd}
@@ -244,7 +272,7 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
                         className={styles.selectInput}
                     >
                         <option value="">Оберіть вчителя</option>
-                        {teachers.map(t => <option key={t.id} value={t.id}>{t.fullName}</option>)}
+                        {filteredTeacherOptions.map(t => <option key={t.id} value={t.id}>{t.fullName}</option>)}
                     </select>
                     <button onClick={addTeacher} className={styles.addButton} title="Додати вчителя"><IoAdd /></button>
                 </div>
@@ -267,6 +295,14 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
         <div>
             <label className={styles.inputLabel}>Пов'язані групи:</label>
             <div className={styles.relatedListContainer}>
+                <input
+                    type="text"
+                    placeholder="Пошук групи..."
+                    value={groupListFilter}
+                    onChange={(e) => setGroupListFilter(e.target.value)}
+                    className={styles.filterInput}
+                />
+
                 <div className={styles.addRelationRow}>
                     <select
                         value={groupToAdd}
@@ -274,7 +310,7 @@ const PlanModal: React.FC<PlanModalProps> = ({ handleClose }) => {
                         className={styles.selectInput}
                     >
                         <option value="">Оберіть групу</option>
-                        {groups.map(g => <option key={g.id} value={g.id}>{g.groupCode}</option>)}
+                        {filteredGroupOptions.map(g => <option key={g.id} value={g.id}>{g.groupCode}</option>)}
                     </select>
                     <button onClick={addGroup} className={styles.addButton} title="Додати групу"><IoAdd /></button>
                 </div>

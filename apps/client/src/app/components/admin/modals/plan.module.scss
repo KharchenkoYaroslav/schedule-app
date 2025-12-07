@@ -134,6 +134,11 @@
   background-color: #f9fafb;
   border: 1px solid $color-border;
   border-radius: 8px;
+  input{
+    background-color: white;
+    margin-bottom: '0.5rem';
+    width: 100%;
+  }
 }
 
 .relatedItemRow {

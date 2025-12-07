@@ -22,6 +22,23 @@ interface Props {
     id: string;
 }
 
+const lessonTypeMap: Record<string, string> = {
+    Lecture: 'Лекція',
+    Practice: 'Практика',
+    Laboratory: 'Лабораторна',
+};
+
+const visitFormatMap: Record<string, string> = {
+    Online: 'Онлайн',
+    Offline: 'Офлайн',
+};
+
+const getLocalizedTypeAndFormat = (type?: string, format?: string) => {
+    const localizedType = type ? (lessonTypeMap[type] || type) : '';
+    const localizedFormat = format ? (visitFormatMap[format] || format) : '';
+    return formatTypeAndFormat(localizedType, localizedFormat);
+};
+
 const Schedules: React.FC<Props> = ({ type, id }) => {
     const navigate = useNavigate();
 
@@ -172,7 +189,7 @@ const Schedules: React.FC<Props> = ({ type, id }) => {
                                                     )}
 
                                                     <div className={styles.typeFormat}>
-                                                        {formatTypeAndFormat(pair.lessonType, pair.visitFormat)}
+                                                        {getLocalizedTypeAndFormat(pair.lessonType, pair.visitFormat)}
                                                     </div>
 
                                                     {pair.audience && (
