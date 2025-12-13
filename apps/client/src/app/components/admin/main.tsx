@@ -25,11 +25,13 @@ import {
   useAddPairMutation,
   useDeletePairMutation,
   useLazyGetPairInfoQuery,
+  useEditPairMutation,
 } from '../../hooks/useScheduleQueries';
 import { PairMinimalInfo } from '../../api/types/schedule/pair-minimal-info.type';
-import { formatSubject, formatTypeAndFormat } from '../../utils/format-utils';
 import { GetPairInfoResponse } from '../../api/types/schedule/get-pair-info.response';
+import { formatSubject, formatTypeAndFormat } from '../../utils/format-utils';
 import { AddPairDto } from '../../api/types/schedule/add-pair.dto';
+import { EditPairDto } from '../../api/types/schedule/edit-pair.dto';
 
 interface ExtendedPairInfo extends PairMinimalInfo {
   lessonType?: LessonType;
@@ -299,6 +301,7 @@ export default function Main({
   const swapTeacherMutation = useSwapTeacherPairsMutation();
   const addPairMutation = useAddPairMutation();
   const deletePairMutation = useDeletePairMutation();
+  const editPairMutation = useEditPairMutation();
 
   const getPairInfo = useLazyGetPairInfoQuery();
 
@@ -477,13 +480,57 @@ export default function Main({
 
       if (e.code === 'Delete') {
         if (!hovered.pairId) return;
-        if (!window.confirm('Ви впевнені, що хочете видалити цю пару?')) return;
+
         try {
-          await deletePairMutation.mutateAsync(hovered.pairId);
-          toast.success('Пару видалено');
+            const info = await getPairInfo(hovered.pairId);
+
+            const isMultiTeacher = selectedTeacher && (info.teachersList?.length ?? 0) > 1;
+            const isMultiGroup = selectedGroup && (info.groupsList?.length ?? 0) > 1;
+
+            if (isMultiTeacher || isMultiGroup) {
+                const contextName = selectedTeacher ? 'цього вчителя' : 'цю групу';
+
+                if (window.confirm(`У цій парі є інші учасники. Видалити тільки ${contextName}?`)) {
+                    let newTeachers = info.teachersList?.map(t => t.id).filter((id): id is string => !!id) || [];
+                    let newGroups = info.groupsList?.map(g => g.id).filter((id): id is string => !!id) || [];
+
+                    if (selectedTeacher?.id) {
+                        newTeachers = newTeachers.filter(id => id !== selectedTeacher.id);
+                    }
+                    if (selectedGroup?.id) {
+                        newGroups = newGroups.filter(id => id !== selectedGroup.id);
+                    }
+
+                    const dto: EditPairDto = {
+                        id: info.id,
+                        semesterNumber: semester,
+                        weekNumber: hovered.week,
+                        dayNumber: hovered.day,
+                        pairNumber: hovered.pairNum,
+                        subjectId: info.subjectId,
+                        lessonType: info.lessonType,
+                        visitFormat: info.visitFormat,
+                        audience: info.audience,
+                        teachersList: newTeachers,
+                        groupsList: newGroups
+                    };
+
+                    await editPairMutation.mutateAsync(dto);
+                    toast.success('Успішно видалено з пари');
+                } else {
+                    if (window.confirm('Видалити всю пару?')) {
+                        await deletePairMutation.mutateAsync(hovered.pairId);
+                        toast.success('Пару видалено');
+                    }
+                }
+            } else {
+                if (!window.confirm('Ви впевнені, що хочете видалити цю пару?')) return;
+                await deletePairMutation.mutateAsync(hovered.pairId);
+                toast.success('Пару видалено');
+            }
         } catch (error) {
-          console.error(error);
-          toast.error('Помилка видалення');
+            console.error(error);
+            toast.error('Помилка при видаленні');
         }
       }
     };
@@ -497,9 +544,11 @@ export default function Main({
     selectedTeacher,
     addPairMutation,
     deletePairMutation,
+    editPairMutation,
     swapGroupMutation,
     swapTeacherMutation,
     getPairInfo,
+    pairs
   ]);
 
   const handleMovePair = useCallback(

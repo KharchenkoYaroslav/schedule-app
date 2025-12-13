@@ -52,6 +52,16 @@ export const useGetPairsByCriteriaQuery = (input: GetPairsByCriteriaDto) => {
   });
 };
 
+export const useLazyGetPairsByCriteriaQuery = () => {
+  const queryClient = useQueryClient();
+  return (input: GetPairsByCriteriaDto) =>
+    queryClient.fetchQuery({
+      queryKey: [SCHEDULE_QUERY_KEY, 'pairs-by-criteria', input],
+      queryFn: () => scheduleService.getPairsByCriteria(input),
+      staleTime: 1000 * 60, 
+    });
+};
+
 export const useGetPairInfoQuery = (id: string) => {
   return useQuery<GetPairInfoResponse>({
     queryKey: [SCHEDULE_QUERY_KEY, 'pair-info', id],
@@ -66,7 +76,7 @@ export const useLazyGetPairInfoQuery = () => {
     queryClient.fetchQuery({
       queryKey: [SCHEDULE_QUERY_KEY, 'pair-info', id],
       queryFn: () => scheduleService.getPairInfo(id),
-      staleTime: 1000 * 60 * 5, 
+      staleTime: 1000 * 60 * 5,
     });
 };
 

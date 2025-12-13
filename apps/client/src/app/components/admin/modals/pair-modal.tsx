@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { IoClose, IoAdd, IoTrash } from 'react-icons/io5';
 import ScaleLoader from 'react-spinners/ScaleLoader';
 import { toast } from 'react-toastify';
@@ -16,7 +16,8 @@ import {
   useAddPairMutation,
   useEditPairMutation,
   useDeletePairMutation,
-  useGetPairInfoQuery
+  useGetPairInfoQuery,
+  useLazyGetPairsByCriteriaQuery
 } from '../../../hooks/useScheduleQueries';
 import { useFindAllCurriculumsQuery } from '../../../hooks/useCurriculumQueries';
 import { useFindAllTeachersQuery } from '../../../hooks/useTeacherQueries';
@@ -42,7 +43,7 @@ interface PairModalProps {
 
 const PairModal: React.FC<PairModalProps> = ({ handleClose, data }) => {
   const {
-    pairId,
+    pairId: initialPairId,
     semester = SemesterNumber.FIRST,
     week,
     day,
@@ -51,7 +52,20 @@ const PairModal: React.FC<PairModalProps> = ({ handleClose, data }) => {
     contextTeacherId
   } = data || {};
 
-  const isEditing = !!pairId;
+  const [activePairId, setActivePairId] = useState<string | null>(initialPairId || null);
+
+  const pendingTeacherToAddRef = useRef<string | null>(null);
+  const pendingGroupToAddRef = useRef<string | null>(null);
+
+  const getPairsByCriteria = useLazyGetPairsByCriteriaQuery();
+
+  useEffect(() => {
+    setActivePairId(data?.pairId || null);
+    pendingTeacherToAddRef.current = null;
+    pendingGroupToAddRef.current = null;
+  }, [data]);
+
+  const isEditing = !!activePairId;
 
   const { data: curriculumsData } = useFindAllCurriculumsQuery();
   const { data: teachersData } = useFindAllTeachersQuery();
@@ -61,7 +75,7 @@ const PairModal: React.FC<PairModalProps> = ({ handleClose, data }) => {
   const teachers = useMemo(() => teachersData?.teachers || [], [teachersData]);
   const groups = useMemo(() => groupsData?.groups || [], [groupsData]);
 
-  const { data: pairInfo, isLoading: isLoadingInfo } = useGetPairInfoQuery(pairId || '');
+  const { data: pairInfo, isLoading: isLoadingInfo } = useGetPairInfoQuery(activePairId || '');
 
   const [subjectId, setSubjectId] = useState<string>('');
   const [lessonType, setLessonType] = useState<LessonType>(LessonType.LECTURE);
@@ -115,21 +129,43 @@ const PairModal: React.FC<PairModalProps> = ({ handleClose, data }) => {
 
     if (isEditing && pairInfo) {
         setSubjectId(pairInfo.subjectId || '');
-
         setLessonType(pairInfo.lessonType || LessonType.LECTURE);
         setVisitFormat(pairInfo.visitFormat || VisitFormat.OFFLINE);
         setAudience(pairInfo.audience || '');
 
-        setSelectedTeachers(
-            pairInfo.teachersList
+        const loadedTeachers = pairInfo.teachersList
               ?.map((t) => t.id)
-              .filter((id): id is string => !!id) || []
-          );
-        setSelectedGroups(
-            pairInfo.groupsList
+              .filter((id): id is string => !!id) || [];
+
+        if (contextTeacherId && !loadedTeachers.includes(contextTeacherId)) {
+            loadedTeachers.push(contextTeacherId);
+        }
+        if (pendingTeacherToAddRef.current) {
+             if (!loadedTeachers.includes(pendingTeacherToAddRef.current)) {
+                loadedTeachers.push(pendingTeacherToAddRef.current);
+             }
+             pendingTeacherToAddRef.current = null;
+        }
+        setSelectedTeachers(loadedTeachers);
+
+
+        const loadedGroups = pairInfo.groupsList
               ?.map((g) => g.id)
-              .filter((id): id is string => !!id) || []
-        );
+              .filter((id): id is string => !!id) || [];
+
+        if (contextGroupId && !loadedGroups.includes(contextGroupId)) {
+            loadedGroups.push(contextGroupId);
+        }
+        if (pendingGroupToAddRef.current) {
+            if (!loadedGroups.includes(pendingGroupToAddRef.current)) {
+               loadedGroups.push(pendingGroupToAddRef.current);
+            }
+            pendingGroupToAddRef.current = null;
+       }
+        setSelectedGroups(loadedGroups);
+
+        setTeacherToAdd('');
+        setGroupToAdd('');
 
     } else if (!isEditing) {
         setSubjectId('');
@@ -164,10 +200,74 @@ const PairModal: React.FC<PairModalProps> = ({ handleClose, data }) => {
       setTeacherToAdd('');
   };
 
-  const handleAddTeacher = () => {
-    if (teacherToAdd && !selectedTeachers.includes(teacherToAdd)) {
+  const handleAddTeacher = async () => {
+    if (!teacherToAdd) return;
+
+    if (week && day && pair) {
+        try {
+            const conflictResponse = await getPairsByCriteria({ semester, teacherId: teacherToAdd });
+
+            const conflictingPair = conflictResponse.pairs?.find(
+                (p) => String(p.weekNumber) === String(week) &&
+                       String(p.dayNumber) === String(day) &&
+                       String(p.pairNumber) === String(pair)
+            );
+
+            if (conflictingPair && conflictingPair.id) {
+                if (activePairId !== conflictingPair.id) {
+                    const shouldLoad = window.confirm(
+                        'Цей вчитель вже має пару в цей час, завантажити наявну пару для редагування?'
+                    );
+                    if (shouldLoad) {
+                        pendingTeacherToAddRef.current = teacherToAdd;
+                        setActivePairId(conflictingPair.id);
+                        return;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Не вдалося перевірити розклад вчителя', error);
+        }
+    }
+
+    if (!selectedTeachers.includes(teacherToAdd)) {
         setSelectedTeachers([...selectedTeachers, teacherToAdd]);
         setTeacherToAdd('');
+    }
+  };
+
+  const handleAddGroup = async () => {
+    if (!groupToAdd) return;
+
+    if (week && day && pair) {
+        try {
+            const conflictResponse = await getPairsByCriteria({ semester, groupId: groupToAdd });
+            const conflictingPair = conflictResponse.pairs?.find(
+                (p) => String(p.weekNumber) === String(week) &&
+                       String(p.dayNumber) === String(day) &&
+                       String(p.pairNumber) === String(pair)
+            );
+
+            if (conflictingPair && conflictingPair.id) {
+                 if (activePairId !== conflictingPair.id) {
+                    const shouldLoad = window.confirm(
+                        'Ця група вже має пару в цей час, завантажити наявну пару для редагування?'
+                    );
+                    if (shouldLoad) {
+                        pendingGroupToAddRef.current = groupToAdd;
+                        setActivePairId(conflictingPair.id);
+                        return;
+                    }
+                 }
+            }
+        } catch (error) {
+            console.error('Не вдалося перевірити розклад групи', error);
+        }
+    }
+
+    if (!selectedGroups.includes(groupToAdd)) {
+        setSelectedGroups([...selectedGroups, groupToAdd]);
+        setGroupToAdd('');
     }
   };
 
@@ -177,13 +277,6 @@ const PairModal: React.FC<PairModalProps> = ({ handleClose, data }) => {
         return;
     }
     setSelectedTeachers(selectedTeachers.filter(t => t !== id));
-  };
-
-  const handleAddGroup = () => {
-    if (groupToAdd && !selectedGroups.includes(groupToAdd)) {
-        setSelectedGroups([...selectedGroups, groupToAdd]);
-        setGroupToAdd('');
-    }
   };
 
   const handleRemoveGroup = (id: string) => {
@@ -204,39 +297,35 @@ const PairModal: React.FC<PairModalProps> = ({ handleClose, data }) => {
       toast.error(`${action}: ${message}`);
   };
 
+  const buildDto = (): AddPairDto => ({
+      semesterNumber: semester,
+      weekNumber: week,
+      dayNumber: day,
+      pairNumber: pair,
+      subjectId: subjectId,
+      lessonType,
+      visitFormat,
+      audience: visitFormat === VisitFormat.OFFLINE ? audience : undefined,
+      groupsList: selectedGroups,
+      teachersList: selectedTeachers,
+  });
+
   const handleSave = async () => {
       if (!subjectId) {
           toast.warn('Будь ласка, оберіть предмет.');
           return;
       }
-
       if (selectedGroups.length === 0 && selectedTeachers.length === 0) {
           toast.warn('Пара повинна мати хоча б одну групу або вчителя.');
           return;
       }
-
       if (!week || !day || !pair) return;
 
-      const commonData: AddPairDto = {
-          semesterNumber: semester,
-          weekNumber: week,
-          dayNumber: day,
-          pairNumber: pair,
-          subjectId: subjectId,
-          lessonType,
-          visitFormat,
-          audience: visitFormat === VisitFormat.OFFLINE ? audience : undefined,
-          groupsList: selectedGroups,
-          teachersList: selectedTeachers,
-      };
+      const commonData = buildDto();
 
       try {
-          if (isEditing && pairId) {
-              const editData: EditPairDto = {
-                  ...commonData,
-                  id: pairId
-              };
-              await editPairMutation.mutateAsync(editData);
+          if (isEditing && activePairId) {
+              await editPairMutation.mutateAsync({ ...commonData, id: activePairId });
               toast.success('Пару оновлено успішно');
           } else {
               await addPairMutation.mutateAsync(commonData);
@@ -248,12 +337,64 @@ const PairModal: React.FC<PairModalProps> = ({ handleClose, data }) => {
       }
   };
 
-  const handleDelete = async () => {
-      if (!isEditing || !pairId) return;
-      if (!window.confirm('Ви впевнені, що хочете видалити цю пару?')) return;
+  const handleInitialDeleteClick = async () => {
+      if (!isEditing || !activePairId) return;
+
+      const isMultiTeacher = !!contextTeacherId && selectedTeachers.length > 1;
+      const isMultiGroup = !!contextGroupId && selectedGroups.length > 1;
+
+      if (isMultiTeacher || isMultiGroup) {
+          const contextName = contextTeacherId ? 'цього вчителя' : 'цю групу';
+
+          if (window.confirm(`У цій парі є інші учасники. Видалити тільки ${contextName}?`)) {
+              await handleRemoveFromContext();
+          } else {
+              if (window.confirm('Видалити всю пару?')) {
+                  await handleDeletePair();
+              }
+          }
+      } else {
+          if (window.confirm('Ви впевнені, що хочете видалити цю пару?')) {
+              await handleDeletePair();
+          }
+      }
+  };
+
+  const handleRemoveFromContext = async () => {
+      if (!isEditing || !activePairId) return;
+
+      let newTeachers = [...selectedTeachers];
+      let newGroups = [...selectedGroups];
+      let actionName = "суб'єкт";
+
+      if (contextTeacherId) {
+          newTeachers = newTeachers.filter(id => id !== contextTeacherId);
+          actionName = "цього вчителя";
+      } else if (contextGroupId) {
+          newGroups = newGroups.filter(id => id !== contextGroupId);
+          actionName = "цю групу";
+      }
+
+      const dto: EditPairDto = {
+          ...buildDto(),
+          id: activePairId,
+          teachersList: newTeachers,
+          groupsList: newGroups
+      };
 
       try {
-          await deletePairMutation.mutateAsync(pairId);
+          await editPairMutation.mutateAsync(dto);
+          toast.success(`Успішно видалено ${actionName} з пари`);
+          handleClose();
+      } catch (error) {
+          handleError(error, 'Помилка оновлення пари');
+      }
+  };
+
+  const handleDeletePair = async () => {
+      if (!isEditing || !activePairId) return;
+      try {
+          await deletePairMutation.mutateAsync(activePairId);
           toast.success('Пару видалено успішно');
           handleClose();
       } catch (error) {
@@ -428,7 +569,7 @@ const PairModal: React.FC<PairModalProps> = ({ handleClose, data }) => {
             {isEditing && (
                 <button
                     className={styles.deleteButton}
-                    onClick={handleDelete}
+                    onClick={handleInitialDeleteClick}
                     disabled={isGlobalLoading}
                 >
                     Видалити пару

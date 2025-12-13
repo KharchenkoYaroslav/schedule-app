@@ -31,7 +31,13 @@ describe('Schedule App Full Cycle Test', () => {
 
   beforeEach(() => {
     cy.viewport(1920, 1080);
-    cy.on('window:confirm', () => true);
+
+    cy.on('window:confirm', (str) => {
+      if (str && str.includes('завантажити наявну пару')) {
+        return false;
+      }
+      return true;
+    });
 
     // INTERCEPTS
 
@@ -173,6 +179,8 @@ describe('Schedule App Full Cycle Test', () => {
        }
     });
 
+    cy.contains('div[class*="relatedItemRow"]', TEST_TEACHER.name).should('exist');
+
     cy.contains('button', 'Створити пару').click({ force: true });
     cy.wait('@createPair').its('response.statusCode').should('eq', 201);
     cy.contains('Пару створено успішно', { timeout: 10000 }).should('exist');
@@ -298,7 +306,10 @@ describe('Schedule App Full Cycle Test', () => {
 
     cy.contains('label', 'Предмет:').next('select').select(TEST_SUBJECT_2);
     cy.contains('label', 'Вчителі:').parent().find('select').first().select(TEST_TEACHER.name);
+
     cy.get('div[class*="addRelationRow"] button').first().click();
+
+    cy.contains('div[class*="relatedItemRow"]', TEST_TEACHER.name).should('exist');
 
     cy.contains('button', 'Створити пару').click();
     cy.wait('@createPair').its('response.statusCode').should('not.eq', 201);
@@ -315,6 +326,8 @@ describe('Schedule App Full Cycle Test', () => {
     cy.contains('label', 'Тип:').next('select').select('Лекція');
     cy.contains('label', 'Вчителі:').parent().find('select').first().select(TEST_TEACHER_2.name);
     cy.get('div[class*="addRelationRow"] button').first().click();
+
+    cy.contains('div[class*="relatedItemRow"]', TEST_TEACHER_2.name).should('exist');
 
     cy.contains('button', 'Створити пару').click();
     cy.wait('@createPair').its('response.statusCode').should('eq', 201);

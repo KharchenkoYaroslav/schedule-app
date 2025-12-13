@@ -133,6 +133,7 @@ describe('Schedule Shortcuts (Ctrl+C, V, X, S, Delete) & Context Validation', ()
 
     cy.contains('button', 'Створити предмет').click({ force: true });
     cy.wait('@createCurriculum');
+    cy.wait('@getCurriculums'); 
 
     // 1.4 Create Subject 2 (Link T1 and G1) - For Swap Test
     cy.get('input[placeholder="Введіть назву"]').clear();
@@ -154,6 +155,7 @@ describe('Schedule Shortcuts (Ctrl+C, V, X, S, Delete) & Context Validation', ()
 
     cy.contains('button', 'Створити предмет').click({ force: true });
     cy.wait('@createCurriculum');
+    cy.wait('@getCurriculums');
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
 
@@ -169,6 +171,9 @@ describe('Schedule Shortcuts (Ctrl+C, V, X, S, Delete) & Context Validation', ()
     cy.contains('label', 'Предмет:').next('select').select(TEST_SUBJECT_1);
     cy.contains('label', 'Вчителі:').parent().find('select').first().select(TEACHER_IN_PAIR.name);
     cy.get('div[class*="addRelationRow"] button').first().click();
+
+    cy.contains('div[class*="relatedItemRow"]', TEACHER_IN_PAIR.name).should('exist');
+
     cy.contains('button', 'Створити пару').click({ force: true });
     cy.wait('@createPair');
     cy.contains(TEST_SUBJECT_1).should('be.visible');
@@ -183,7 +188,6 @@ describe('Schedule Shortcuts (Ctrl+C, V, X, S, Delete) & Context Validation', ()
     cy.get('@pairSubj1').trigger('mouseover', { force: true });
     cy.get('@pairSubj1').trigger('mouseenter', { force: true });
     cy.wait(300);
-    cy.get('body').click({ force: true });
     cy.get('body').type('{ctrl}c');
     cy.contains('Пару скопійовано').should('be.visible');
 
@@ -237,6 +241,9 @@ describe('Schedule Shortcuts (Ctrl+C, V, X, S, Delete) & Context Validation', ()
     cy.contains('label', 'Предмет:').next('select').select(TEST_SUBJECT_2);
     cy.contains('label', 'Вчителі:').parent().find('select').first().select(TEACHER_IN_PAIR.name);
     cy.get('div[class*="addRelationRow"] button').first().click();
+
+    cy.contains('div[class*="relatedItemRow"]', TEACHER_IN_PAIR.name).should('exist');
+
     cy.contains('button', 'Створити пару').click({ force: true });
     cy.wait('@createPair');
     cy.contains(TEST_SUBJECT_2).should('be.visible');
@@ -355,10 +362,6 @@ describe('Schedule Shortcuts (Ctrl+C, V, X, S, Delete) & Context Validation', ()
              cy.wrap($el).trigger('mouseover', { force: true });
              cy.wrap($el).trigger('mouseenter', { force: true });
              cy.wait(500);
-
-             cy.get('body').click({ force: true });
-             cy.wrap($el).trigger('mouseenter', { force: true });
-             cy.wait(200);
 
              cy.get('body').type('{del}');
              cy.wait('@deletePair');
