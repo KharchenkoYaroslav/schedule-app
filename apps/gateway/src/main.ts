@@ -15,20 +15,25 @@ async function bootstrap() {
   });
   app.setGlobalPrefix('v1');
 
-  const config = new DocumentBuilder()
-    .setTitle('Schedule API Gateway')
-    .setDescription('Документація REST API для розкладу')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
   const port = process.env.SERVER_PORT || 4000;
+
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Schedule API Gateway')
+      .setDescription('Документація REST API для розкладу')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+    Logger.log(
+      `📑 Swagger documentation is available at: http://localhost:${port}/api/docs`,
+    );
+  }
+
   await app.listen(port);
   Logger.log(`🚀 Application is running on path: ${port}/v1`);
-  Logger.log(`📑 Swagger documentation is available at: http://localhost:${port}/api/docs`);
 }
 
 bootstrap();

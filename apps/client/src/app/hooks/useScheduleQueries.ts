@@ -60,6 +60,16 @@ export const useGetPairInfoQuery = (id: string) => {
   });
 };
 
+export const useLazyGetPairInfoQuery = () => {
+  const queryClient = useQueryClient();
+  return (id: string) =>
+    queryClient.fetchQuery({
+      queryKey: [SCHEDULE_QUERY_KEY, 'pair-info', id],
+      queryFn: () => scheduleService.getPairInfo(id),
+      staleTime: 1000 * 60 * 5, 
+    });
+};
+
 export const useSwapGroupPairsMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({

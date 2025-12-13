@@ -18,20 +18,25 @@ async function bootstrap() {
     },
   });
 
-  const asyncApiOptions = new AsyncApiDocumentBuilder()
-    .setTitle('Logger Service')
-    .setDescription('Сервіс логування через RabbitMQ')
-    .setVersion('1.0')
-    .setDefaultContentType('application/json')
-    .addServer('rabbitmq', {
-      url: 'amqp://localhost:5672',
-      protocol: 'amqp',
-      description: 'RabbitMQ Server',
-    } as AsyncServerObject)
-    .build();
+  if (process.env.NODE_ENV !== 'production') {
+    const asyncApiOptions = new AsyncApiDocumentBuilder()
+      .setTitle('Logger Service')
+      .setDescription('Сервіс логування через RabbitMQ')
+      .setVersion('1.0')
+      .setDefaultContentType('application/json')
+      .addServer('rabbitmq', {
+        url: 'amqp://localhost:5672',
+        protocol: 'amqp',
+        description: 'RabbitMQ Server',
+      } as AsyncServerObject)
+      .build();
 
-  const asyncApiDocument = AsyncApiModule.createDocument(app, asyncApiOptions);
-  await AsyncApiModule.setup('async-api', app, asyncApiDocument);
+    const asyncApiDocument = AsyncApiModule.createDocument(
+      app,
+      asyncApiOptions,
+    );
+    await AsyncApiModule.setup('async-api', app, asyncApiDocument);
+  }
 
   await app.startAllMicroservices();
 
@@ -39,7 +44,12 @@ async function bootstrap() {
   await app.listen(port);
 
   Logger.log(`✅ Microservice Logger is listening on queue: logger_queue`);
-  Logger.log(`📑 AsyncAPI documentation available at: http://localhost:${port}/async-api`);
+
+  if (process.env.NODE_ENV !== 'production') {
+    Logger.log(
+      `📑 AsyncAPI documentation available at: http://localhost:${port}/async-api`,
+    );
+  }
 }
 
 bootstrap();
