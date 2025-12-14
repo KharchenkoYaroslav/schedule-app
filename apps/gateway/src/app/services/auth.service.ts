@@ -1,6 +1,7 @@
 import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { Observable, firstValueFrom, catchError } from 'rxjs';
+import { status } from '@grpc/grpc-js'; // Додайте цей імпорт
 import { LoginInput } from '../dto/auth/input/login.input';
 import { RegisterInput } from '../dto/auth/input/register.input';
 import { ChangeLoginInput } from '../dto/auth/input/change-login.input';
@@ -10,9 +11,11 @@ import { UsersResponseDto } from '../dto/auth/response/users.response';
 import { AddAllowedUserInput } from '../dto/auth/input/add-allowed-user.input';
 import { ChangeUserRoleInput } from '../dto/auth/input/change-user-role.input';
 import { VerifyResponse } from '../dto/auth/response/verify.response';
+import { RefreshInput } from '../dto/auth/input/refresh.input';
 
 interface AuthServiceGrpc {
   login(data: LoginInput): Observable<LoginResponse>;
+  logout(data: { userId: string }): Observable<{ success: boolean }>; 
   verify(data: { token: string }): Observable<VerifyResponse>;
   register(data: RegisterInput): Observable<LoginResponse>;
   changeLogin(data: ChangeLoginInput & { userId: string }): Observable<{ success: boolean }>;
@@ -23,6 +26,7 @@ interface AuthServiceGrpc {
   changeUserRole(data: ChangeUserRoleInput): Observable<{ success: boolean }>;
   getUsers(data: object): Observable<UsersResponseDto>;
   getAllowedUsers(data: object): Observable<UsersResponseDto>;
+  refresh(data: RefreshInput): Observable<LoginResponse>;
 }
 
 @Injectable()
@@ -38,7 +42,23 @@ export class AuthService {
   async login(data: LoginInput) {
     return firstValueFrom(this.authService.login(data).pipe(
       catchError(error => {
-        throw new HttpException(error, HttpStatus.UNAUTHORIZED);
+        throw new HttpException(error.details || error.message, HttpStatus.UNAUTHORIZED);
+      })
+    ));
+  }
+
+  async logout(userId: string) {
+    return firstValueFrom(this.authService.logout({ userId }).pipe(
+      catchError(error => {
+        throw new HttpException(error.details || error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      })
+    ));
+  }
+
+  async refresh(data: RefreshInput) {
+    return firstValueFrom(this.authService.refresh(data).pipe(
+      catchError(error => {
+        throw new HttpException(error.details || error.message, HttpStatus.UNAUTHORIZED);
       })
     ));
   }
@@ -46,10 +66,14 @@ export class AuthService {
   async register(data: RegisterInput) {
     return firstValueFrom(this.authService.register(data).pipe(
       catchError(error => {
-        if (error.message === '7 PERMISSION_DENIED: Registration not allowed for this login.') {
-          throw new HttpException(error.message, HttpStatus.FORBIDDEN);
+        // БЕЗПЕКА: Перевірка коду статусу замість тексту повідомлення
+        if (error.code === status.PERMISSION_DENIED) {
+             throw new HttpException(error.details || error.message, HttpStatus.FORBIDDEN);
         }
-        throw new HttpException(error, HttpStatus.CONFLICT);
+        if (error.code === status.ALREADY_EXISTS) {
+            throw new HttpException(error.details || error.message, HttpStatus.CONFLICT);
+        }
+        throw new HttpException(error.details || error.message, HttpStatus.BAD_REQUEST);
       })
     ));
   }
@@ -57,7 +81,10 @@ export class AuthService {
   async changeLogin(data: ChangeLoginInput & { userId: string }) {
     await firstValueFrom(this.authService.changeLogin(data).pipe(
       catchError(error => {
-        throw new HttpException(error, HttpStatus.CONFLICT);
+        if (error.code === status.ALREADY_EXISTS) {
+            throw new HttpException(error.details || error.message, HttpStatus.CONFLICT);
+        }
+        throw new HttpException(error.details || error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       })
     ));
   }
@@ -66,7 +93,7 @@ export class AuthService {
     await firstValueFrom(
       this.authService.changePassword(data).pipe(
         catchError(error => {
-          throw new HttpException(error, HttpStatus.UNAUTHORIZED);
+          throw new HttpException(error.details || error.message, HttpStatus.UNAUTHORIZED);
         })
       )
     );
@@ -75,7 +102,7 @@ export class AuthService {
   async deleteAccount(data: { userId: string }) {
     await firstValueFrom(this.authService.deleteAccount(data).pipe(
       catchError(error => {
-        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(error.details || error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       })
     ));
   }
@@ -83,16 +110,19 @@ export class AuthService {
   async verify(data: { token: string }) {
     const response = await firstValueFrom(this.authService.verify(data).pipe(
       catchError(error => {
-        throw new HttpException(error, HttpStatus.UNAUTHORIZED);
+        throw new HttpException(error.details || error.message, HttpStatus.UNAUTHORIZED);
       })
     ));
-    return { valid: response.valid, role: response.role };
+    return { valid: response.valid, role: response.role, userId: response.userId };
   }
 
   async addAllowedUser(data: AddAllowedUserInput) {
     await firstValueFrom(this.authService.addAllowedUser(data).pipe(
       catchError(error => {
-        throw new HttpException(error, HttpStatus.CONFLICT);
+        if (error.code === status.ALREADY_EXISTS) {
+             throw new HttpException(error.details || error.message, HttpStatus.CONFLICT);
+        }
+        throw new HttpException(error.details || error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       })
     ));
   }
@@ -100,7 +130,10 @@ export class AuthService {
   async deleteAllowedUser(data: { userId: string }) {
     await firstValueFrom(this.authService.deleteAllowedUser(data).pipe(
       catchError(error => {
-        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        if (error.code === status.NOT_FOUND) {
+            throw new HttpException(error.details || error.message, HttpStatus.NOT_FOUND);
+        }
+        throw new HttpException(error.details || error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       })
     ));
   }
@@ -108,7 +141,10 @@ export class AuthService {
   async changeUserRole(data: ChangeUserRoleInput) {
     await firstValueFrom(this.authService.changeUserRole(data).pipe(
       catchError(error => {
-        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        if (error.code === status.NOT_FOUND) {
+            throw new HttpException(error.details || error.message, HttpStatus.NOT_FOUND);
+        }
+        throw new HttpException(error.details || error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       })
     ));
   }
@@ -116,7 +152,7 @@ export class AuthService {
   async getUsers() {
     return firstValueFrom(this.authService.getUsers({}).pipe(
       catchError(error => {
-        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(error.details || error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       })
     ));
   }
@@ -124,7 +160,7 @@ export class AuthService {
   async getAllowedUsers() {
     return firstValueFrom(this.authService.getAllowedUsers({}).pipe(
       catchError(error => {
-        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(error.details || error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       })
     ));
   }

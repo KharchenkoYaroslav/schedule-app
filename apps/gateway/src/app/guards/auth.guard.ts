@@ -31,15 +31,6 @@ export class RestAuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    if (!requiredRoles) {
-      return true;
-    }
-
     const req = context.switchToHttp().getRequest();
     const authHeader = req.headers.authorization;
 
@@ -49,28 +40,38 @@ export class RestAuthGuard implements CanActivate {
 
     const [type, token] = authHeader.split(' ');
 
-    if (type !== 'Bearer') {
+    if (type !== 'Bearer' || !token) {
       throw new UnauthorizedException('Invalid authorization type');
     }
 
+    let userResponse;
     try {
-      const response = await firstValueFrom(
+      userResponse = await firstValueFrom(
         this.authService.verify({ token })
       );
 
-      if (!response.valid) {
+      if (!userResponse.valid) {
         throw new UnauthorizedException('Invalid token');
       }
-      req.user = { sub: response.userId, role: response.role };
-
-      const hasRole = requiredRoles.some((role) => response.role === role);
-      if (!hasRole) {
-        throw new UnauthorizedException('Insufficient role');
-      }
-
-      return true;
+      req.user = { sub: userResponse.userId, role: userResponse.role };
     } catch (error) {
-      throw new UnauthorizedException('Invalid token' + error);
+      throw new UnauthorizedException('Invalid token verification' + error.message);
     }
+
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (!requiredRoles) {
+      return true;
+    }
+
+    const hasRole = requiredRoles.some((role) => userResponse.role === role);
+    if (!hasRole) {
+      throw new UnauthorizedException('Insufficient role');
+    }
+
+    return true;
   }
 }

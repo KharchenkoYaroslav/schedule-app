@@ -16,6 +16,8 @@ service AuthService {
   rpc ChangeUserRole (ChangeUserRoleRequest) returns (BoolResponse);
   rpc GetAllowedUsers (google.protobuf.Empty) returns (UsersResponse);
   rpc GetUsers (google.protobuf.Empty) returns (UsersResponse);
+  rpc Logout (Id) returns (BoolResponse);
+  rpc Refresh (RefreshRequest) returns (LoginResponse);
 }
 
 message Id{
@@ -48,11 +50,12 @@ message LoginRequest {
 }
 
 message LoginResponse {
-  string token = 1;
-  string user_id = 2;
-  string login = 3;
-  string role = 4;
-  string created_at = 5;
+  string access_token = 1;
+  string refresh_token = 2;
+  string user_id = 3;
+  string login = 4;
+  string role = 5;
+  string created_at = 6;
 }
 
 message RegisterRequest {
@@ -64,7 +67,6 @@ message ChangeLoginRequest {
   string user_id = 1;
   string new_login = 2;
 }
-
 
 message ChangePasswordRequest {
   string user_id = 1;
@@ -84,4 +86,8 @@ message VerifyResponse {
   bool valid = 1;
   string user_id = 2;
   string role = 3;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
 }

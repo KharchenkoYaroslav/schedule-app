@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,6 +8,7 @@ import { User } from './entities/user.entity';
 import { AllowedUser } from './entities/allowed-users.entity';
 import { UserRole } from './entities/user-role.enum';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +18,7 @@ export class AuthService {
     @InjectRepository(AllowedUser)
     private allowedUsersRepository: Repository<AllowedUser>,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   private validateRole(role: UserRole): void {
@@ -29,28 +31,73 @@ export class AuthService {
     }
   }
 
-  async validateUser(
-    login: string,
-    password: string
-  ): Promise<{ id: string; login: string; createdAt: Date; role: UserRole } | null> {
+  async validateUser(login: string, password: string): Promise<User | null> {
     const user = await this.usersRepository.findOne({ where: { login } });
-
-    if (!user) {
-      return null;
-    }
+    if (!user) return null;
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return null;
-    }
+    if (!isPasswordValid) return null;
 
-    const { id, created_at, role } = user;
-    return { id: id, login: login, createdAt: created_at, role: role };
+    return user;
   }
 
-  async login(user: { id: string; login: string; createdAt: Date }): Promise<string> {
-    const payload = { login: user.login, sub: user.id };
-    return this.jwtService.sign(payload);
+  async getTokens(userId: string, login: string, role: UserRole) {
+    const payload = { sub: userId, login, role };
+
+    const accessSecret = this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
+    const refreshSecret = this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: accessSecret,
+        expiresIn: '15m',
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: refreshSecret,
+        expiresIn: '7d',
+      }),
+    ]);
+
+    return { accessToken, refreshToken };
+  }
+
+  async updateRefreshToken(userId: string, refreshToken: string) {
+    const salt = await bcrypt.genSalt();
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, salt);
+    await this.usersRepository.update(userId, { hashedRefreshToken });
+  }
+
+  async login(user: User) {
+    const tokens = await this.getTokens(user.id, user.login, user.role);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    return tokens;
+  }
+
+  async logout(userId: string) {
+    await this.usersRepository.update(userId, { hashedRefreshToken: null });
+  }
+
+  async refreshTokens(refreshToken: string) {
+    try {
+      const secret = this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
+      const payload = await this.jwtService.verifyAsync(refreshToken, { secret });
+
+      const user = await this.usersRepository.findOne({ where: { id: payload.sub } });
+      if (!user || !user.hashedRefreshToken) throw new UnauthorizedException('Access Denied');
+
+      const refreshTokenMatches = await bcrypt.compare(refreshToken, user.hashedRefreshToken);
+      if (!refreshTokenMatches) throw new UnauthorizedException('Access Denied');
+
+      const tokens = await this.getTokens(user.id, user.login, user.role);
+      await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+      return { ...tokens, user };
+    } catch (error) {
+      throw new RpcException({
+        code: status.UNAUTHENTICATED,
+        message: 'Invalid Refresh Token: ' + (error instanceof Error ? error.message : ''),
+      });
+    }
   }
 
   private async isLoginTaken(login: string): Promise<boolean> {
@@ -203,7 +250,8 @@ export class AuthService {
     token: string
   ): Promise<{ valid: boolean; userId?: string; role?: UserRole }> {
     try {
-      const payload = this.jwtService.verify(token);
+      const secret = this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
+      const payload = this.jwtService.verify(token, { secret });
       const user = await this.usersRepository.findOne({ where: { id: payload.sub } });
 
       if (!user) {
@@ -215,10 +263,9 @@ export class AuthService {
 
       return { valid: true, userId: payload.sub, role: user.role };
     } catch (error) {
-
       throw new RpcException({
         code: status.UNAUTHENTICATED,
-        message: 'Invalid token or verification failed: ' + error.message,
+        message: 'Invalid token or verification failed: ' + (error instanceof Error ? error.message : ''),
       });
     }
   }

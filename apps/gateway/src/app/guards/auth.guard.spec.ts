@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RestAuthGuard, ROLES_KEY } from './auth.guard';
+import { RestAuthGuard } from './auth.guard';
 import { Reflector } from '@nestjs/core';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { of, throwError } from 'rxjs';
@@ -73,53 +73,50 @@ describe('RestAuthGuard', () => {
   };
 
   describe('canActivate', () => {
-    it('повинен повернути true, якщо ролі не потрібні (публічний маршрут)', async () => {
+    it('повинен повернути true, якщо ролі не задані, АЛЕ токен валідний', async () => {
       reflector.getAllAndOverride?.mockReturnValue(null);
-      const context = createMockContext();
+      const context = createMockContext({ authorization: 'Bearer validToken' });
+
+      authService.verify.mockReturnValue(of({
+        valid: true,
+        userId: '123',
+        role: UserRole.USER
+      }));
 
       const result = await guard.canActivate(context);
 
       expect(result).toBe(true);
-      expect(reflector.getAllAndOverride).toHaveBeenCalledWith(ROLES_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+      const req = context.switchToHttp().getRequest();
+      expect(req.user).toEqual({ sub: '123', role: UserRole.USER });
     });
 
-    it('повинен викинути UnauthorizedException, якщо відсутній заголовок authorization', async () => {
-      reflector.getAllAndOverride?.mockReturnValue([UserRole.ADMIN]);
+    it('повинен викинути UnauthorizedException, якщо відсутній заголовок authorization (навіть без ролей)', async () => {
+      reflector.getAllAndOverride?.mockReturnValue(null); 
       const context = createMockContext({});
 
       await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
     });
 
     it('повинен викинути UnauthorizedException, якщо тип токена не Bearer', async () => {
-      reflector.getAllAndOverride?.mockReturnValue([UserRole.ADMIN]);
       const context = createMockContext({ authorization: 'Basic someToken' });
-
       await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
     });
 
-    it('повинен викинути UnauthorizedException, якщо токен невалідний (verify повертає valid: false)', async () => {
-      reflector.getAllAndOverride?.mockReturnValue([UserRole.ADMIN]);
+    it('повинен викинути UnauthorizedException, якщо токен невалідний', async () => {
       const context = createMockContext({ authorization: 'Bearer invalidToken' });
-
       authService.verify.mockReturnValue(of({ valid: false }));
 
       await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
-      expect(authService.verify).toHaveBeenCalledWith({ token: 'invalidToken' });
     });
 
     it('повинен викинути UnauthorizedException, якщо виникла помилка RPC', async () => {
-      reflector.getAllAndOverride?.mockReturnValue([UserRole.ADMIN]);
       const context = createMockContext({ authorization: 'Bearer token' });
-
       authService.verify.mockReturnValue(throwError(() => new Error('RPC Error')));
 
       await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
     });
 
-    it('повинен повернути true та встановити user в request, якщо авторизація успішна та роль підходить', async () => {
+    it('повинен повернути true, якщо авторизація успішна та роль підходить', async () => {
       const requiredRoles = [UserRole.ADMIN];
       reflector.getAllAndOverride?.mockReturnValue(requiredRoles);
 
@@ -132,11 +129,7 @@ describe('RestAuthGuard', () => {
       }));
 
       const result = await guard.canActivate(context);
-
       expect(result).toBe(true);
-
-      const req = context.switchToHttp().getRequest();
-      expect(req.user).toEqual({ sub: '123', role: UserRole.ADMIN });
     });
 
     it('повинен викинути UnauthorizedException, якщо роль користувача недостатня', async () => {

@@ -19,16 +19,47 @@ export class AuthController {
         message: 'Invalid credentials',
       });
     }
-    const token = await this.authService.login(user);
-    return { token: token, userId: user.id, login: data.login, role: user.role, createdAt: user.createdAt };
+    const tokens = await this.authService.login(user);
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      userId: user.id,
+      login: user.login,
+      role: user.role,
+      createdAt: user.created_at.toISOString()
+    };
   }
 
   @GrpcMethod('AuthService', 'Register')
   async register(data: { login: string; password: string }) {
     const user = await this.authService.register(data.login, data.password);
-    const token = await this.authService.login({ id: user.id, login: user.login, createdAt: user.created_at });
+    const tokens = await this.authService.login(user);
     return {
-      token: token, userId: user.id, login: data.login, role: user.role, createdAt: user.created_at
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      userId: user.id,
+      login: user.login,
+      role: user.role,
+      createdAt: user.created_at.toISOString()
+    };
+  }
+
+  @GrpcMethod('AuthService', 'Logout')
+  async logout(data: { userId: string }) {
+    await this.authService.logout(data.userId);
+    return { success: true };
+  }
+
+  @GrpcMethod('AuthService', 'Refresh')
+  async refresh(data: { refreshToken: string }) {
+    const result = await this.authService.refreshTokens(data.refreshToken);
+    return {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      userId: result.user.id,
+      login: result.user.login,
+      role: result.user.role,
+      createdAt: result.user.created_at.toISOString(),
     };
   }
 

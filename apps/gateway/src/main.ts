@@ -3,16 +3,23 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
 import { AllExceptionsFilter } from './app/filters/all-exceptions.filter';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(cookieParser());
+
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
   app.enableCors({
-    origin: '*',
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
+    credentials: true,
   });
+
   app.setGlobalPrefix('v1');
 
   const port = process.env.SERVER_PORT || 4000;
@@ -33,7 +40,7 @@ async function bootstrap() {
   }
 
   await app.listen(port);
-  Logger.log(`🚀 Application is running on path: ${port}/v1`);
+  Logger.log(`🚀 Application is running on path: http://localhost:${port}/v1`);
 }
 
 bootstrap();

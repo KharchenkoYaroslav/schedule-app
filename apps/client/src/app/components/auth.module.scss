@@ -13,7 +13,7 @@ $color-dark: #2f4f4f;
   justify-content: center;
   align-items: center;
 
-  & > div {
+  & > form {
     background-color: $color-grey;
     padding: 20px;
     border-radius: 10px;
@@ -62,7 +62,6 @@ $color-dark: #2f4f4f;
     }
   }
 }
-
 
 .processingText {
   color: $color-dark;

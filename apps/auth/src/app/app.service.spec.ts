@@ -7,18 +7,21 @@ import { AllowedUser } from './entities/allowed-users.entity';
 import { UserRole } from './entities/user-role.enum';
 import { RpcException } from '@nestjs/microservices';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
 
 type MockRepository<T = unknown> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 type MockJwtService = Partial<Record<keyof JwtService, jest.Mock>>;
+type MockConfigService = Partial<Record<keyof ConfigService, jest.Mock>>;
 
 describe('AuthService', () => {
   let service: AuthService;
   let jwtService: MockJwtService;
   let usersRepository: MockRepository<User>;
   let allowedUsersRepository: MockRepository<AllowedUser>;
+  let configService: MockConfigService;
 
   const mockUsersRepository: MockRepository<User> = {
     findOne: jest.fn(),
@@ -26,6 +29,7 @@ describe('AuthService', () => {
     save: jest.fn(),
     remove: jest.fn(),
     find: jest.fn(),
+    update: jest.fn(),
   };
 
   const mockAllowedUsersRepository: MockRepository<AllowedUser> = {
@@ -38,7 +42,17 @@ describe('AuthService', () => {
 
   const mockJwtService: MockJwtService = {
     sign: jest.fn(),
+    signAsync: jest.fn(),
     verify: jest.fn(),
+    verifyAsync: jest.fn(),
+  };
+
+  const mockConfigService: MockConfigService = {
+    getOrThrow: jest.fn((key: string) => {
+      if (key === 'JWT_ACCESS_SECRET') return 'access-secret';
+      if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret';
+      throw new Error(`Config key ${key} not found`);
+    }),
   };
 
   beforeEach(async () => {
@@ -59,6 +73,10 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: mockJwtService,
         },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
       ],
     }).compile();
 
@@ -66,6 +84,7 @@ describe('AuthService', () => {
     jwtService = module.get<JwtService>(JwtService) as unknown as MockJwtService;
     usersRepository = module.get<Repository<User>>(getRepositoryToken(User)) as unknown as MockRepository<User>;
     allowedUsersRepository = module.get<Repository<AllowedUser>>(getRepositoryToken(AllowedUser)) as unknown as MockRepository<AllowedUser>;
+    configService = module.get<ConfigService>(ConfigService) as unknown as MockConfigService;
   });
 
   it('should be defined', () => {
@@ -92,12 +111,7 @@ describe('AuthService', () => {
 
       expect(usersRepository.findOne).toHaveBeenCalledWith({ where: { login } });
       expect(bcrypt.compare).toHaveBeenCalledWith(password, hashedPassword);
-      expect(result).toEqual({
-        id: mockUser.id,
-        login: mockUser.login,
-        createdAt: mockUser.created_at,
-        role: mockUser.role,
-      });
+      expect(result).toEqual(mockUser);
     });
 
     it('повинен повернути null, якщо користувача не знайдено', async () => {
@@ -120,24 +134,91 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('повинен згенерувати та повернути JWT токен', async () => {
+    it('повинен згенерувати access та refresh токени та оновити хеш refresh токена', async () => {
       const user = {
         id: 'uuid-1',
         login: 'testUser',
-        createdAt: new Date(),
         role: UserRole.ADMIN,
-      };
-      const token = 'generated-jwt-token';
+      } as User;
 
-      jwtService.sign?.mockReturnValue(token);
+      const accessToken = 'access-token';
+      const refreshToken = 'refresh-token';
+      const hashedRefreshToken = 'hashed-refresh-token';
+
+      jwtService.signAsync
+        ?.mockResolvedValueOnce(accessToken)
+        .mockResolvedValueOnce(refreshToken);
+
+      (bcrypt.genSalt as jest.Mock).mockResolvedValue('salt');
+      (bcrypt.hash as jest.Mock).mockResolvedValue(hashedRefreshToken);
+      usersRepository.update?.mockResolvedValue({});
 
       const result = await service.login(user);
 
-      expect(jwtService.sign).toHaveBeenCalledWith({
-        login: user.login,
-        sub: user.id,
-      });
-      expect(result).toBe(token);
+      expect(configService.getOrThrow).toHaveBeenCalledWith('JWT_ACCESS_SECRET');
+      expect(configService.getOrThrow).toHaveBeenCalledWith('JWT_REFRESH_SECRET');
+      expect(jwtService.signAsync).toHaveBeenCalledTimes(2);
+      expect(usersRepository.update).toHaveBeenCalledWith(user.id, { hashedRefreshToken });
+      expect(result).toEqual({ accessToken, refreshToken });
+    });
+  });
+
+  describe('logout', () => {
+    it('повинен видалити хеш refresh токена', async () => {
+      const userId = 'user-id';
+      usersRepository.update?.mockResolvedValue({});
+
+      await service.logout(userId);
+
+      expect(usersRepository.update).toHaveBeenCalledWith(userId, { hashedRefreshToken: null });
+    });
+  });
+
+  describe('refreshTokens', () => {
+    const refreshToken = 'valid-refresh-token';
+    const userId = 'user-uuid';
+    const hashedRefreshToken = 'hashed-rt';
+    const user = {
+      id: userId,
+      login: 'login',
+      role: UserRole.ADMIN,
+      hashedRefreshToken
+    } as User;
+
+    it('повинен оновити токени, якщо refresh token валідний', async () => {
+      jwtService.verifyAsync?.mockResolvedValue({ sub: userId });
+      usersRepository.findOne?.mockResolvedValue(user);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      const newAccessToken = 'new-access';
+      const newRefreshToken = 'new-refresh';
+
+      jwtService.signAsync
+        ?.mockResolvedValueOnce(newAccessToken)
+        .mockResolvedValueOnce(newRefreshToken);
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
+
+      const result = await service.refreshTokens(refreshToken);
+
+      expect(configService.getOrThrow).toHaveBeenCalledWith('JWT_REFRESH_SECRET');
+      expect(jwtService.verifyAsync).toHaveBeenCalledWith(refreshToken, { secret: 'refresh-secret' });
+      expect(usersRepository.findOne).toHaveBeenCalledWith({ where: { id: userId } });
+      expect(bcrypt.compare).toHaveBeenCalledWith(refreshToken, hashedRefreshToken);
+      expect(result).toEqual({ accessToken: newAccessToken, refreshToken: newRefreshToken, user });
+    });
+
+    it('повинен викинути RpcException, якщо токен невалідний', async () => {
+      jwtService.verifyAsync?.mockRejectedValue(new Error('Invalid token'));
+
+      await expect(service.refreshTokens(refreshToken)).rejects.toThrow(RpcException);
+    });
+
+    it('повинен викинути UnauthorizedException (через RpcException), якщо користувача не знайдено', async () => {
+      jwtService.verifyAsync?.mockResolvedValue({ sub: userId });
+      usersRepository.findOne?.mockResolvedValue(null);
+
+      await expect(service.refreshTokens(refreshToken)).rejects.toThrow(RpcException);
     });
   });
 
@@ -204,7 +285,8 @@ describe('AuthService', () => {
 
       const result = await service.verify(token);
 
-      expect(jwtService.verify).toHaveBeenCalledWith(token);
+      expect(configService.getOrThrow).toHaveBeenCalledWith('JWT_ACCESS_SECRET');
+      expect(jwtService.verify).toHaveBeenCalledWith(token, { secret: 'access-secret' });
       expect(usersRepository.findOne).toHaveBeenCalledWith({ where: { id: payload.sub } });
       expect(result).toEqual({ valid: true, userId: user.id, role: user.role });
     });
@@ -229,7 +311,7 @@ describe('AuthService', () => {
     const login = 'newAllowedUser';
     const role = UserRole.ADMIN;
 
-    it('повинен успішно додати дозволеного користувача з валідною роллю', async () => {
+    it('повинен успішно додати дозволеного користувача', async () => {
       allowedUsersRepository.findOne?.mockResolvedValue(null);
       allowedUsersRepository.create?.mockReturnValue({ login, role } as AllowedUser);
       allowedUsersRepository.save?.mockResolvedValue({ id: 'id', login, role } as AllowedUser);
@@ -310,7 +392,7 @@ describe('AuthService', () => {
     });
 
     it('повинен викинути помилку, якщо користувача не знайдено', async () => {
-      usersRepository.findOne?.mockResolvedValueOnce(null); 
+      usersRepository.findOne?.mockResolvedValueOnce(null);
       usersRepository.findOne?.mockResolvedValueOnce(null);
 
       await expect(service.changeLogin(userId, newLogin)).rejects.toThrow(RpcException);

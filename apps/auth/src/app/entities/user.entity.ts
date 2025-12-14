@@ -23,6 +23,9 @@ export class User {
   })
   role!: UserRole;
 
+  @Column({ nullable: true })
+  hashedRefreshToken?: string;
+
   @CreateDateColumn()
   created_at!: Date;
 }

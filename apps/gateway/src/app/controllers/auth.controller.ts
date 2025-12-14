@@ -33,6 +33,7 @@ import { UserRole } from '../dto/auth/types/user-role.enum';
 import { LoginResponse } from '../dto/auth/response/login.response';
 import { VerifyResponse } from '../dto/auth/response/verify.response';
 import { UsersResponseDto } from '../dto/auth/response/users.response';
+import { RefreshInput } from '../dto/auth/input/refresh.input';
 
 interface AuthRequest extends Request {
   user: {
@@ -75,6 +76,21 @@ export class AuthController {
   @Post('login')
   async login(@Body() data: LoginInput) {
     return this.authService.login(data);
+  }
+
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    type: LoginResponse,
+    description: 'Tokens refreshed successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Invalid or expired refresh token',
+  })
+  @Post('refresh')
+  async refresh(@Body() data: RefreshInput) {
+    return this.authService.refresh(data);
   }
 
   @ApiOperation({ summary: 'User registration' })

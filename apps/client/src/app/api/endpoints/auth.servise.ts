@@ -24,4 +24,11 @@ export class AuthService {
     });
     return data;
   }
+
+  async refresh(refreshToken: string): Promise<LoginResponse> {
+    const { data } = await apiClient.post<LoginResponse>('/auth/refresh', {
+      refreshToken: refreshToken,
+    });
+    return data;
+  }
 }

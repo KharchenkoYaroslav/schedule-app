@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import styles from './auth.module.scss';
@@ -20,17 +20,25 @@ const Auth: React.FC = () => {
   const registerMutation = useRegisterMutation();
 
   const handleSuccess = (data: LoginResponse) => {
-    if (data.token) {
+    console.group('Auth Component: Success Handler');
+
+    if (data.accessToken) {
       login({
-        token: data.token,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
         role: data.role,
       });
 
       navigate('/admin');
+    } else {
+      console.error('ERROR: No accessToken in response!', data);
+      setError('Login failed: No access token received from server.');
     }
+    console.groupEnd();
   };
 
   const handleError = (err: unknown, action: 'Login' | 'Registration') => {
+    console.error(`Auth Component: ${action} error:`, err);
     const axiosError = err as AxiosError<{ message: string }>;
     if (axiosError.response && axiosError.response.data) {
       setError(
@@ -64,21 +72,27 @@ const Auth: React.FC = () => {
     }
   };
 
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    handleAuthAction();
+  };
+
   const isLoading = loginMutation.isPending || registerMutation.isPending;
 
   return (
     <div className={styles.auth}>
-      <div>
+      <form onSubmit={onSubmit}>
         <h1>{isRegister ? 'Register' : 'Login'}</h1>
 
         <div>
           <input
             type="text"
             placeholder="Login"
+            name="username"
+            autoComplete="username"
             value={currentLogin}
             onChange={(e) => setCurrentLogin(e.target.value)}
             disabled={isLoading}
-            onKeyDown={(e) => e.key === 'Enter' && handleAuthAction()}
           />
         </div>
 
@@ -86,10 +100,11 @@ const Auth: React.FC = () => {
           <input
             type="password"
             placeholder="Password"
+            name="password"
+            autoComplete="current-password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             disabled={isLoading}
-            onKeyDown={(e) => e.key === 'Enter' && handleAuthAction()}
           />
         </div>
 
@@ -98,10 +113,12 @@ const Auth: React.FC = () => {
             <h4 className={styles.processingText}>Processing...</h4>
           ) : (
             <>
-              <button onClick={handleAuthAction} disabled={isLoading}>
+              <button type="submit" disabled={isLoading}>
                 {isRegister ? 'Register' : 'Login'}
               </button>
+
               <button
+                type="button"
                 onClick={() => setIsRegister(!isRegister)}
                 disabled={isLoading}
               >
@@ -112,7 +129,7 @@ const Auth: React.FC = () => {
         </div>
 
         <div>{error && <p style={{ color: 'red' }}>{error}</p>}</div>
-      </div>
+      </form>
     </div>
   );
 };
