@@ -35,7 +35,13 @@ apiClient.interceptors.response.use(
             localStorage.setItem('token', data.accessToken);
             localStorage.setItem('refreshToken', data.refreshToken);
 
+            window.dispatchEvent(new Event('token-refreshed'));
+
             originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+
+            if (originalRequest.params && originalRequest.params.token) {
+              originalRequest.params.token = data.accessToken;
+            }
 
             apiClient.defaults.headers.common['Authorization'] = `Bearer ${data.accessToken}`;
 

@@ -8,7 +8,9 @@ import { User } from './entities/user.entity';
 import { AllowedUser } from './entities/allowed-users.entity';
 import { UserRole } from './entities/user-role.enum';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +22,40 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
+
+  async onModuleInit() {
+    await this.createDefaultSuperAdmin();
+  }
+
+  private async createDefaultSuperAdmin() {
+    const adminLogin = this.configService.get<string>('SUPER_ADMIN_LOGIN');
+    const adminPassword = this.configService.get<string>('SUPER_ADMIN_PASSWORD');
+
+    if (!adminLogin || !adminPassword) {
+      Logger.warn('SUPER_ADMIN_LOGIN or SUPER_ADMIN_PASSWORD not set in .env. Skipping default admin creation.');
+      return;
+    }
+
+    const existingAdmin = await this.usersRepository.findOneBy({ login: adminLogin });
+
+    if (!existingAdmin) {
+      Logger.log(`Creating default Super Admin with login: ${adminLogin}`);
+
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+      const admin = this.usersRepository.create({
+        id: uuidv4(),
+        login: adminLogin,
+        password: hashedPassword,
+        role: UserRole.SUPER_ADMIN,
+      });
+
+      await this.usersRepository.save(admin);
+      Logger.log('Super Admin created successfully.');
+    } else {
+        Logger.log('Super Admin already exists.');
+    }
+  }
 
   private validateRole(role: UserRole): void {
     const validRoles = Object.values(UserRole);

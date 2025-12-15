@@ -29,6 +29,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return initialToken;
   });
 
+  useEffect(() => {
+    const handleTokenRefresh = () => {
+      const newToken = localStorage.getItem('token');
+      if (newToken) {
+        setToken(newToken);
+      }
+    };
+
+    window.addEventListener('token-refreshed', handleTokenRefresh);
+    return () => {
+      window.removeEventListener('token-refreshed', handleTokenRefresh);
+    };
+  }, []);
+
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState<boolean>(!initialToken);
 
   const {
