@@ -40,12 +40,11 @@ async function bootstrap() {
 
   await app.startAllMicroservices();
 
-  const port = process.env.LOGGER_PORT || 3001;
-  await app.listen(port);
-
   Logger.log(`✅ Microservice Logger is listening on queue: logger_queue`);
 
   if (process.env.NODE_ENV !== 'production') {
+    const port = process.env.LOGGER_PORT || 3001;
+    await app.listen(port);
     Logger.log(
       `📑 AsyncAPI documentation available at: http://localhost:${port}/async-api`,
     );
