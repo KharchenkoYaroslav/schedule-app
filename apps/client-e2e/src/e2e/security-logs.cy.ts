@@ -48,15 +48,9 @@ describe('Security & User Management Flow', () => {
     // PART 1: LOGS VERIFICATION
 
     // 1.1 LOGIN AS HEAD ADMIN
+    cy.login(HEAD_ADMIN_LOGIN, HEAD_ADMIN_PASS);
     cy.visit('/admin');
-    cy.get('body').then(($body) => {
-      if ($body.find('input[placeholder="Login"]').length > 0) {
-        cy.get('input[placeholder="Login"]').type(HEAD_ADMIN_LOGIN);
-        cy.get('input[placeholder="Password"]').type(HEAD_ADMIN_PASS);
-        cy.get('button').contains('Login').click();
-        cy.wait('@loginReq');
-      }
-    });
+
     cy.contains('span', 'Супер Адмін', { timeout: 15000 }).should('be.visible');
 
     // 1.2 CREATE GROUP TO TRIGGER LOG
@@ -137,7 +131,7 @@ describe('Security & User Management Flow', () => {
       timeout: 10000,
     }).should('exist');
 
-    // ADD USER 3 
+    // ADD USER 3
     cy.get('input[placeholder="Логін користувача"]').clear();
     cy.get('input[placeholder="Логін користувача"]').type(USER_3.login);
     cy.contains('button', 'Додати').click();
@@ -235,10 +229,9 @@ describe('Security & User Management Flow', () => {
     // PART 5: HEAD ADMIN VERIFICATION & CLEANUP
 
     // 5.1 LOGIN HEAD ADMIN
-    cy.get('input[placeholder="Login"]').type(HEAD_ADMIN_LOGIN);
-    cy.get('input[placeholder="Password"]').type(HEAD_ADMIN_PASS);
-    cy.get('button').contains('Login').click();
-    cy.wait('@loginReq');
+    cy.login(HEAD_ADMIN_LOGIN, HEAD_ADMIN_PASS);
+    cy.visit('/admin');
+
     cy.contains('span', 'Супер Адмін', { timeout: 15000 }).should('be.visible');
 
     // 5.2 CHECK ACCOUNTS

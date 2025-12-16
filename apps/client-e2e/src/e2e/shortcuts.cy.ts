@@ -57,15 +57,9 @@ describe('Schedule Shortcuts (Ctrl+C, V, X, S, Delete) & Context Validation', ()
 
     // 1. SETUP: LOGIN & CREATE ENTITIES
 
+    cy.login(ADMIN_LOGIN, ADMIN_PASS);
+
     cy.visit('/admin');
-    cy.get('body').then(($body) => {
-      if ($body.find('input[placeholder="Login"]').length > 0) {
-        cy.get('input[placeholder="Login"]').type(ADMIN_LOGIN);
-        cy.get('input[placeholder="Password"]').type(ADMIN_PASS);
-        cy.get('button').contains('Login').click();
-        cy.wait('@loginReq');
-      }
-    });
 
     // 1.1 Create Teachers
     cy.contains('button', 'Вчителі').click();
@@ -133,7 +127,7 @@ describe('Schedule Shortcuts (Ctrl+C, V, X, S, Delete) & Context Validation', ()
 
     cy.contains('button', 'Створити предмет').click({ force: true });
     cy.wait('@createCurriculum');
-    cy.wait('@getCurriculums'); 
+    cy.wait('@getCurriculums');
 
     // 1.4 Create Subject 2 (Link T1 and G1) - For Swap Test
     cy.get('input[placeholder="Введіть назву"]').clear();

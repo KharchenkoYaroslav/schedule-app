@@ -20,20 +20,14 @@ describe('Additional Year Manipulation Test', () => {
     cy.intercept('POST', '**/group*').as('createGroup');
     cy.intercept('DELETE', '**/group*/*').as('deleteGroup');
 
-    cy.intercept('POST', '**/additional*').as('updateGroupsAction');
+    cy.intercept('POST', '**/update-groups*').as('updateGroupsAction');
   });
 
   it('should handle year transition logic correctly', () => {
     // 1. LOGIN
+    cy.login(ADMIN_LOGIN, ADMIN_PASS);
+
     cy.visit('/admin');
-    cy.get('body').then(($body) => {
-      if ($body.find('input[placeholder="Login"]').length > 0) {
-        cy.get('input[placeholder="Login"]').type(ADMIN_LOGIN);
-        cy.get('input[placeholder="Password"]').type(ADMIN_PASS);
-        cy.get('button').contains('Login').click();
-        cy.wait('@loginReq');
-      }
-    });
     cy.contains('span', 'Супер Адмін', { timeout: 15000 }).should('be.visible');
 
     // 2. CLEANUP & SETUP GROUPS
@@ -88,8 +82,8 @@ describe('Additional Year Manipulation Test', () => {
     cy.wait('@createGroup');
     cy.contains('Група додана успішно', { timeout: 10000 }).should('exist');
 
-    cy.get('select').first().find('option').contains(GROUP_1_START).should('exist');
-    cy.get('select').first().find('option').contains(GROUP_2_START).should('exist');
+    cy.get('select').first().should('contain', GROUP_1_START);
+    cy.get('select').first().should('contain', GROUP_2_START);
 
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
@@ -99,6 +93,7 @@ describe('Additional Year Manipulation Test', () => {
     cy.contains('h2', 'Додатково').should('be.visible');
 
     cy.contains('button', 'Перенести розклад на наступний рік').click();
+    cy.wait('@updateGroupsAction').its('response.statusCode').should('eq', 201);
     cy.contains('Операцію виконано успішно', { timeout: 15000 }).should('exist');
 
     cy.get('div[class*="headerActions"] svg').click({ force: true });
@@ -106,11 +101,10 @@ describe('Additional Year Manipulation Test', () => {
     cy.contains('button', 'Групи').click();
     cy.wait('@getGroups');
 
-    cy.get('select').first().find('option').contains(GROUP_1_NEXT_1).should('exist');
-    cy.get('select').first().find('option').contains(GROUP_2_NEXT_1).should('exist');
-
-    cy.get('select').first().find('option').contains(GROUP_1_START).should('not.exist');
-    cy.get('select').first().find('option').contains(GROUP_2_START).should('not.exist');
+    cy.get('select').first().should('not.contain', GROUP_1_START);
+    cy.get('select').first().should('not.contain', GROUP_2_START);
+    cy.get('select').first().should('contain', GROUP_1_NEXT_1);
+    cy.get('select').first().should('contain', GROUP_2_NEXT_1);
 
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
@@ -119,15 +113,18 @@ describe('Additional Year Manipulation Test', () => {
     cy.contains('button', 'Додатково').click();
     cy.contains('button', 'Перенести розклад на наступний рік').click();
 
+    cy.wait('@updateGroupsAction').its('response.statusCode').should('eq', 201);
     cy.contains('Операцію виконано успішно', { timeout: 15000 }).should('exist');
+
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
     cy.contains('button', 'Групи').click();
     cy.wait('@getGroups');
 
-    cy.get('select').first().find('option').contains(GROUP_1_NEXT_2).should('exist'); // ТВ-42
-    cy.get('select').first().find('option').contains(GROUP_2_NEXT_1).should('not.exist'); // ТВ-52 deleted
-    cy.get('select').first().find('option').contains(GROUP_1_NEXT_1).should('not.exist'); // ТВ-32 deleted
+    cy.get('select').first().should('not.contain', GROUP_1_NEXT_1); // ТВ-32 deleted
+    cy.get('select').first().should('not.contain', GROUP_2_NEXT_1); // ТВ-52 deleted
+
+    cy.get('select').first().should('contain', GROUP_1_NEXT_2); // ТВ-42
 
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
@@ -136,14 +133,16 @@ describe('Additional Year Manipulation Test', () => {
     cy.contains('button', 'Додатково').click();
     cy.contains('button', 'Скинути групи').click();
 
+    cy.wait('@updateGroupsAction').its('response.statusCode').should('eq', 201);
     cy.contains('Операцію виконано успішно', { timeout: 15000 }).should('exist');
+
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
     cy.contains('button', 'Групи').click();
     cy.wait('@getGroups');
 
-    cy.get('select').first().find('option').contains(GROUP_1_NEXT_1).should('exist'); // ТВ-32 back
-    cy.get('select').first().find('option').contains(GROUP_1_NEXT_2).should('not.exist');
+    cy.get('select').first().should('not.contain', GROUP_1_NEXT_2);
+    cy.get('select').first().should('contain', GROUP_1_NEXT_1); // ТВ-32 back
 
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
@@ -152,14 +151,16 @@ describe('Additional Year Manipulation Test', () => {
     cy.contains('button', 'Додатково').click();
     cy.contains('button', 'Скинути групи').click();
 
+    cy.wait('@updateGroupsAction').its('response.statusCode').should('eq', 201);
     cy.contains('Операцію виконано успішно', { timeout: 15000 }).should('exist');
+
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
     cy.contains('button', 'Групи').click();
     cy.wait('@getGroups');
 
-    cy.get('select').first().find('option').contains(GROUP_1_START).should('exist'); // ТВ-22 back
-    cy.get('select').first().find('option').contains(GROUP_1_NEXT_1).should('not.exist');
+    cy.get('select').first().should('not.contain', GROUP_1_NEXT_1);
+    cy.get('select').first().should('contain', GROUP_1_START); // ТВ-22 back
 
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
@@ -168,13 +169,15 @@ describe('Additional Year Manipulation Test', () => {
     cy.contains('button', 'Додатково').click();
     cy.contains('button', 'Скинути групи').click();
 
+    cy.wait('@updateGroupsAction').its('response.statusCode').should('eq', 201);
     cy.contains('Операцію виконано успішно', { timeout: 15000 }).should('exist');
+
     cy.get('div[class*="headerActions"] svg').click({ force: true });
 
     cy.contains('button', 'Групи').click();
     cy.wait('@getGroups');
 
-    cy.get('select').first().find('option').contains(GROUP_1_START).should('not.exist'); // ТВ-22 deleted
+    cy.get('select').first().should('not.contain', GROUP_1_START); // ТВ-22 deleted
     cy.get('div[class*="headerActions"] svg').click({ force: true });
   });
 });

@@ -64,18 +64,9 @@ describe('Schedule App Full Cycle Test', () => {
 
   it('should pass the full CRUD flow and return to initial state', () => {
     // 1. LOGIN
+
+    cy.login(ADMIN_LOGIN, ADMIN_PASS);
     cy.visit('/admin');
-
-    cy.get('body').then(($body) => {
-      if ($body.find('input[placeholder="Login"]').length > 0) {
-        cy.get('input[placeholder="Login"]').type(ADMIN_LOGIN);
-        cy.get('input[placeholder="Password"]').type(ADMIN_PASS);
-        cy.get('button').contains('Login').click();
-
-        cy.wait('@loginReq').its('response.statusCode').should('eq', 201);
-        cy.get('input[placeholder="Login"]', { timeout: 10000 }).should('not.exist');
-      }
-    });
 
     cy.url().should('include', '/admin');
     cy.contains('span', 'Супер Адмін', { timeout: 15000 }).should('be.visible');
@@ -205,13 +196,9 @@ describe('Schedule App Full Cycle Test', () => {
 
 
     // 7. RE-LOGIN ADMIN FOR COMPLEX TESTS
+
+    cy.login(ADMIN_LOGIN, ADMIN_PASS);
     cy.visit('/admin');
-    cy.get('input[placeholder="Login"]').type(ADMIN_LOGIN);
-    cy.get('input[placeholder="Password"]').type(ADMIN_PASS);
-    cy.get('button').contains('Login').click();
-    cy.wait('@loginReq');
-
-
 
     // COMPLEX SCENARIOS: CONFLICTS & DND
 
