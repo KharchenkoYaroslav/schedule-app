@@ -1,101 +1,165 @@
-# Server
+# 📅 Schedule App
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+This project is a comprehensive educational scheduling platform built as a monorepo using Nx, NestJS, and React. It features a scalable microservices architecture powered by RESTful API, gRPC and RabbitMQ designed primarily to provide instant, open access to dynamic timetables for students and staff, supported by a secure administrative core for managing academic resources.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## 📦 Technologies
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/nest?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+- `TypeScript`
+- `Nx`
+- `NestJS`
+- `gRPC`
+- `RabbitMQ`
+- `Docker`
+- `TypeORM`
+- `Vite`
+- `React`
+- `SCSS`
 
-## Run tasks
+## 🌐 Public Features
 
-To run the dev server for your app, use:
+The public interface is designed for quick and easy lookup of educational timetables for students and staff.
 
-```sh
-npx nx serve server
+- **Smart Search**: Instantly find study groups or teachers by name using a responsive search interface.
+- **Group Schedules**: View detailed weekly timetables including subjects, locations, and teachers. 
+- **Teacher Timetables**: Access individual schedules for lecturers to track their classes.
+- **Two-Week View**: The schedule automatically displays both the current and the upcoming week simultaneously.
+- **Interlinked Navigation**: Teacher and group names within the schedule are clickable links that navigate directly to their timetables.
+
+## 🛠 Administrative Tools
+
+A restricted area for authorized personnel to manage the educational process and resources.
+
+- **High-Efficiency Workflow**: Implimanted **pair swapping** and **keyboard shortcuts** system allows for rapid schedule editing.
+- **Smart Scheduling Engine**: Automatic **conflict protection** to prevent overlaps, and **smart linking** that automatically connects pair to a teacher's existing lesson if existed.
+- **Academic Lifecycle Management**: Includes a **Year Shifting** tool for the instant transfer of the schedule structure to the next academic year.
+- **Curriculum Control**: Tools to monitor and ensure the complete execution of the academic plan for every group and subject.
+- **Resource Management**: Full control over curriculums, groups, and teacher information.
+
+## 🛡 Security & Governance
+
+Built with a focus on data integrity, accountability, and controlled access.
+
+- **Strict Access Control**: A **Whitelist-based registration** system ensures that only pre-approved personnel can create administrative accounts.
+- **Comprehensive Auditing**: A dedicated logging microservice records every administrative action (modifications, deletions, logins), creating an immutable history.
+- **Role-Based Permissions**: Granular access levels (Admin, Super Admin) ensure users operate strictly within their authorized scope.
+
+## 🏗️ System Architecture
+
+The system follows a scalable microservices architecture managed within an **Nx** monorepo. It leverages different communication protocols to ensure performance and reliability:
+
+- **Gateway Service** (`REST API`): The main entry point that aggregates data from internal services and routes requests from the client.
+- **Auth Service** & **Schedule Service** (`gRPC`): High-performance internal microservices responsible for core business logic and data management.
+- **Logger Service** (`RabbitMQ`): A dedicated service for logging administrator actions. It processes logs asynchronously via RabbitMQ to ensure that the main application processes remain unblocked and efficient.
+- **Client** (`React`): A modern Single Page Application (SPA) consuming the Gateway API.
+
+## 📂 Project Structure
+
+This monorepo project is organized into the following applications:
+
+- `apps/client` - Frontend application built with React and Vite.
+- `apps/gateway` - API Gateway acting as the public interface.
+- `apps/auth` - Authentication microservice handling users and roles.
+- `apps/schedule` - Core schedule management microservice.
+- `apps/logger` - Centralized audit logging microservice.
+
+## 📚 API Documentation
+
+The project provides auto-generated documentation for developers to explore endpoints, event schemas, and service contracts:
+
+- **REST API (Swagger)**: Interactive API documentation is available at the Gateway service.
+  - URL: `http://localhost:{SERVER_PORT}/api/docs`
+- **Event-Driven API (AsyncAPI)**: Documentation for RabbitMQ events is available at the Logger service.
+  - URL: `http://localhost:{LOGGER_PORT}/async-api`
+- **gRPC API (Protobuf)**: Service contracts and message definitions are documented directly in the `.proto` files.
+  - Auth Service: [`apps/auth/src/app/proto/auth.proto`](apps/auth/src/app/proto/auth.proto)
+  - Schedule Service: [`apps/schedule/src/app/proto/schedule.proto`](apps/schedule/src/app/proto/schedule.proto)
+> [!NOTE]
+> Swagger and AsyncAPI documentation is not available statically or when running in `production` mode.
+
+## 🧪 Testing
+
+The project ensures reliability through comprehensive testing suites powered by **Jest** and **Cypress**.
+
+### 🛠 Running Tests
+You can verify business logic and user flows using the following commands:
+
+1. Run `npx nx run-many --target=test` for Unit & Integration tests for all applications and libraries.
+
+2. Run `npx nx run client-e2e:open` for End-to-End tests.
+> [!NOTE]
+> Requires **Auth Service** & **Schedule Service** & **Logger Service** to be running with the `test` configuration
+
+## ℹ️ Environment
+
+```
+# Database Connection URLs (Production)
+AUTH_DATABASE_URL=postgresql://user:password@host:port/auth_db
+SCHEDULE_DATABASE_URL=postgresql://user:password@host:port/schedule_db
+LOGS_DATABASE_URL=postgresql://user:password@host:port/logs_db
+
+# Database Connection URLs (Testing/Development)
+# Required for running e2e tests
+AUTH_DATABASE_TEST_URL=postgresql://user:password@host:port/auth_test_db
+SCHEDULE_DATABASE_TEST_URL=postgresql://user:password@host:port/schedule_test_db
+LOGS_DATABASE_TEST_URL=postgresql://user:password@host:port/logs_test_db
+
+# JWT Configuration
+# Generate strong random strings for these secrets
+JWT_ACCESS_SECRET=your_access_secret_key
+JWT_REFRESH_SECRET=your_refresh_secret_key
+
+# Super Admin Credentials
+# Used for initial setup and emergency access
+SUPER_ADMIN_LOGIN=Head Admin
+SUPER_ADMIN_PASSWORD=strong_password
+
+# Service Configuration & Ports
+VITE_API_URL=http://localhost:4000/v1
+SERVER_PORT=4000
+AUTH_SERVICE_URL=localhost:4010
+SHEDULE_SERVICE_URL=localhost:4020
+LOGGER_PORT=4030
+
+# Message Broker Configuration
+RABBITMQ_URL=amqp://user:password@localhost:5672
 ```
 
-To create a production bundle:
+## 🚦 Running the Project
 
-```sh
-npx nx build server
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Configure environment variables:
+   - Create a `.env` file in the root directory.
+   - Add the necessary variables as described in the **Environment** section.
+4. Start the RabbitMQ
+5. Start the applications:
+You can run the entire platform at once or start specific services as needed.
+
+Option A: Run All Services 
 ```
-
-To see all available targets to run for a project, run:
-
-```sh
-npx nx show project server
+npx nx run-many --target=serve --all --parallel=5
 ```
-
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Add new projects
-
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-Use the plugin's generator to create new projects.
-
-To generate a new application, use:
-
-```sh
-npx nx g @nx/nest:app demo
+Option B: Run Services Individually (Recommended for development)
 ```
+# Backend Services
+npx nx serve gateway
+npx nx serve auth
+npx nx serve schedule
+npx nx serve logger
 
-To generate a new library, use:
-
-```sh
-npx nx g @nx/node:lib mylib
+# Frontend
+npx nx serve client
 ```
-
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
-
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
+Option C: Run in Test Mode Required when running E2E tests to use test databases.
 ```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+npx nx serve auth --configuration=test
+npx nx serve schedule --configuration=test
+npx nx serve logger --configuration=test
 ```
+6. Open `http://localhost:4200` in your browser
+> [!TIP]
+> Highly recommend installing the Nx Console extension for VS Code.
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## 🎞️ Preview
 
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/nest?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+https://github.com/user-attachments/assets/29e67c52-8c07-4963-837a-ea10e06d6b61
