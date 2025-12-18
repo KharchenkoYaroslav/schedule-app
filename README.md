@@ -1,6 +1,6 @@
 # 📅 Schedule App
 
-This project is a comprehensive educational scheduling platform built as a monorepo using Nx, NestJS, and React. It features a scalable microservices architecture powered by RESTful API, gRPC and RabbitMQ designed primarily to provide instant, open access to dynamic timetables for students and staff, supported by a secure administrative core for managing academic resources.
+This project is a comprehensive educational scheduling platform built as a monorepo using Nx, NestJS, and React. It features a scalable microservices architecture powered by RESTful APIs, gRPC, and RabbitMQ, designed primarily to provide instant, open access to dynamic timetables for students and staff, supported by a secure administrative core for managing academic resources.
 
 ## 📦 Technologies
 
@@ -30,10 +30,10 @@ The public interface is designed for quick and easy lookup of educational timeta
 A restricted area for authorized personnel to manage the educational process and resources.
 
 - **High-Efficiency Workflow**: Implimanted **pair swapping** and **keyboard shortcuts** system allows for rapid schedule editing.
-- **Smart Scheduling Engine**: Automatic **conflict protection** to prevent overlaps, and **smart linking** that automatically connects pair to a teacher's existing lesson if existed.
+- **Smart Scheduling Engine**: Automatic **conflict protection** to prevent overlaps, and **smart linking** that automatically connects pairs to a teacher's existing lesson if it exists.
 - **Academic Lifecycle Management**: Includes a **Year Shifting** tool for the instant transfer of the schedule structure to the next academic year.
 - **Curriculum Control**: Tools to monitor and ensure the complete execution of the academic plan for every group and subject.
-- **Resource Management**: Full control over curriculums, groups, and teacher information.
+- **Resource Management**: Full control over curricula, groups, and teacher information.
 
 ## 🛡 Security & Governance
 
@@ -41,7 +41,7 @@ Built with a focus on data integrity, accountability, and controlled access.
 
 - **Strict Access Control**: A **Whitelist-based registration** system ensures that only pre-approved personnel can create administrative accounts.
 - **Comprehensive Auditing**: A dedicated logging microservice records every administrative action (modifications, deletions, logins), creating an immutable history.
-- **Role-Based Permissions**: Granular access levels (Admin, Super Admin) ensure users operate strictly within their authorized scope.
+- **Role-Based Permissions**: Granular access levels (Admin, Super Admin) ensure users operate strictly within their authorised scope.
 
 ## 🏗️ System Architecture
 
@@ -54,13 +54,13 @@ The system follows a scalable microservices architecture managed within an **Nx*
 
 ## 📂 Project Structure
 
-This monorepo project is organized into the following applications:
+This monorepo project is organised into the following applications:
 
 - `apps/client` - Frontend application built with React and Vite.
 - `apps/gateway` - API Gateway acting as the public interface.
 - `apps/auth` - Authentication microservice handling users and roles.
 - `apps/schedule` - Core schedule management microservice.
-- `apps/logger` - Centralized audit logging microservice.
+- `apps/logger` - Centralised audit logging microservice.
 
 ## 📚 API Documentation
 
@@ -74,7 +74,7 @@ The project provides auto-generated documentation for developers to explore endp
   - Auth Service: [`apps/auth/src/app/proto/auth.proto`](apps/auth/src/app/proto/auth.proto)
   - Schedule Service: [`apps/schedule/src/app/proto/schedule.proto`](apps/schedule/src/app/proto/schedule.proto)
 > [!NOTE]
-> Swagger and AsyncAPI documentation is not available statically or when running in `production` mode.
+> Swagger and AsyncAPI documentation are not available statically or when running in `production` mode.
 
 ## 🧪 Testing
 
@@ -150,7 +150,7 @@ npx nx serve logger
 # Frontend
 npx nx serve client
 ```
-Option C: Run in Test Mode Required when running E2E tests to use test databases.
+Option C: Running in Test Mode is required when executing E2E tests to utilise test databases.
 ```
 npx nx serve auth --configuration=test
 npx nx serve schedule --configuration=test
@@ -163,3 +163,6 @@ npx nx serve logger --configuration=test
 ## 🎞️ Preview
 
 https://github.com/user-attachments/assets/29e67c52-8c07-4963-837a-ea10e06d6b61
+
+> [!NOTE]
+> The preview demonstrates the creation of a schedule for a group, with curriculum written in advance.
