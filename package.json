@@ -69,7 +69,7 @@
     "@vitest/coverage-v8": "^4.0.15",
     "@vitest/ui": "^4.0.0",
     "bcrypt": "^6.0.0",
-    "cypress": "^15.6.0",
+    "cypress": "^15.8.1",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-cypress": "^3.5.0",
