@@ -15,7 +15,7 @@
     "@tanstack/react-query": "^5.90.16",
     "amqp-connection-manager": "^5.0.0",
     "amqplib": "^0.10.9",
-    "axios": "^1.6.0",
+    "axios": "^1.15.0",
     "cache-manager": "^7.2.4",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
